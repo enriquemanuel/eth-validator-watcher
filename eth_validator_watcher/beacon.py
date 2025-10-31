@@ -293,20 +293,34 @@ class Beacon:
 
         return ProposerDuties.model_validate_json(response.text)
 
-    def get_validators(self, slot: int) -> Validators:
+    def get_validators(self, slot: int, validator_ids: list[str] = None) -> Validators:
         """Get validator information for a specific slot.
 
         Args:
             slot: int
                 Slot for which to retrieve validator information.
+            validator_ids: list[str], optional
+                List of validator public keys or indices to filter by.
+                If None, returns all validators (WARNING: uses lots of memory!).
+                If provided, only returns the specified validators.
 
         Returns:
             Validators
                 The validator information for the specified slot.
         """
-        response = self._get_retry_not_found(
-            f"{self._url}/eth/v1/beacon/states/{slot}/validators", timeout=self._timeout_sec
-        )
+        url = f"{self._url}/eth/v1/beacon/states/{slot}/validators"
+
+        # If validator_ids provided, use POST to avoid URL length limits
+        # (80k validators would create ~8MB URL which exceeds HTTP limits)
+        if validator_ids is not None and len(validator_ids) > 0:
+            response = self._post_retry_not_found(
+                url,
+                json=validator_ids,
+                timeout=self._timeout_sec
+            )
+        else:
+            # No filter - get all validators (memory-intensive!)
+            response = self._get_retry_not_found(url, timeout=self._timeout_sec)
 
         response.raise_for_status()
 

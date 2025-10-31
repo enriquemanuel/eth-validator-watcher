@@ -235,8 +235,19 @@ class ValidatorWatcher:
             self._schedule.update(self._beacon, slot)
 
             if beacon_validators is None or (slot % self._spec.data.SLOTS_PER_EPOCH == 0):
-                logging.info(f'🔨 Processing epoch {epoch}')
-                beacon_validators = self._beacon.get_validators(self._clock.epoch_to_slot(epoch))
+                logging.info(f'Processing epoch {epoch}')
+                # Extract public keys from watched_keys config
+                watched_pubkeys = [key.public_key for key in self._cfg.watched_keys] if self._cfg.watched_keys else []
+                if watched_pubkeys:
+                    logging.info(f'Fetching {len(watched_pubkeys)} watched validators (memory-optimized)')
+                else:
+                    logging.warning('WARNING: No watched_keys configured - fetching ALL validators (high memory usage!)')
+                # Only fetch watched validators to save memory (not all 1M+ validators!)
+                beacon_validators = self._beacon.get_validators(
+                    self._clock.epoch_to_slot(epoch),
+                    validator_ids=watched_pubkeys if watched_pubkeys else None
+                )
+                logging.info(f'Received {len(beacon_validators.data)} validators from beacon API')
                 watched_validators.process_epoch(beacon_validators)
                 if not watched_validators.config_initialized:
                     watched_validators.process_config(self._cfg)
