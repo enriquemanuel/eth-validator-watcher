@@ -38,9 +38,9 @@ type PrometheusMetrics struct {
 	ConsensusRewardsRate  *prometheus.GaugeVec
 
 	// Duty metrics
-	AttestationDuties     *prometheus.GaugeVec
+	AttestationDuties        *prometheus.GaugeVec
 	AttestationDutiesSuccess *prometheus.GaugeVec
-	AttestationDutiesRate *prometheus.GaugeVec
+	AttestationDutiesRate    *prometheus.GaugeVec
 
 	// Status metrics
 	StatusCount *prometheus.GaugeVec

@@ -14,9 +14,9 @@ func TestDecodeBitVector(t *testing.T) {
 		expected map[int]bool
 	}{
 		{
-			name:   "all zeros",
-			hexStr: "0x00",
-			size:   8,
+			name:     "all zeros",
+			hexStr:   "0x00",
+			size:     8,
 			expected: map[int]bool{},
 		},
 		{
@@ -29,15 +29,15 @@ func TestDecodeBitVector(t *testing.T) {
 			},
 		},
 		{
-			name:   "first bit set",
-			hexStr: "0x01",
-			size:   8,
+			name:     "first bit set",
+			hexStr:   "0x01",
+			size:     8,
 			expected: map[int]bool{0: true},
 		},
 		{
-			name:   "last bit set",
-			hexStr: "0x80",
-			size:   8,
+			name:     "last bit set",
+			hexStr:   "0x80",
+			size:     8,
 			expected: map[int]bool{7: true},
 		},
 		{
@@ -192,7 +192,13 @@ func TestProcessRewards(t *testing.T) {
 		},
 	}
 
-	result, err := ProcessRewards(rewards, []models.ValidatorIndex{100, 200})
+	// Build validator balances map
+	validatorBalances := map[models.ValidatorIndex]models.Gwei{
+		100: 32_000_000_000, // 32 ETH
+		200: 32_000_000_000, // 32 ETH
+	}
+
+	result, err := ProcessRewards(rewards, validatorBalances)
 	if err != nil {
 		t.Fatalf("ProcessRewards failed: %v", err)
 	}

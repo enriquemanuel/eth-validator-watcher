@@ -13,31 +13,31 @@ type MetricsByLabel struct {
 	Label string
 
 	// Counts
-	ValidatorCount        int
-	StakeCount            float64
-	MissedAttestations    uint64
-	MissedAttestationsStake float64
-	SuboptimalSourceVotes uint64
+	ValidatorCount             int
+	StakeCount                 float64
+	MissedAttestations         uint64
+	MissedAttestationsStake    float64
+	SuboptimalSourceVotes      uint64
 	SuboptimalSourceVotesStake float64
-	SuboptimalTargetVotes uint64
+	SuboptimalTargetVotes      uint64
 	SuboptimalTargetVotesStake float64
-	SuboptimalHeadVotes   uint64
-	SuboptimalHeadVotesStake float64
-	ProposedBlocks        uint64
-	ProposedBlocksFinalized uint64
-	MissedBlocks          uint64
-	MissedBlocksFinalized uint64
-	FutureBlockProposals  uint64
+	SuboptimalHeadVotes        uint64
+	SuboptimalHeadVotesStake   float64
+	ProposedBlocks             uint64
+	ProposedBlocksFinalized    uint64
+	MissedBlocks               uint64
+	MissedBlocksFinalized      uint64
+	FutureBlockProposals       uint64
 
 	// Rewards
-	IdealConsensusRewards models.Gwei        // Ideal is always positive
-	ConsensusRewards      models.SignedGwei  // Actual can be negative (penalties)
+	IdealConsensusRewards models.Gwei       // Ideal is always positive
+	ConsensusRewards      models.SignedGwei // Actual can be negative (penalties)
 	ConsensusRewardsRate  float64
 
 	// Duties
-	AttestationDuties         uint64
-	AttestationDutiesSuccess  uint64
-	AttestationDutiesRate     float64
+	AttestationDuties        uint64
+	AttestationDutiesSuccess uint64
+	AttestationDutiesRate    float64
 
 	// Status breakdown
 	StatusCounts map[models.ValidatorStatus]int

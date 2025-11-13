@@ -10,22 +10,22 @@ import (
 // WatchedValidator represents a validator being watched with its labels
 type WatchedValidator struct {
 	models.Validator
-	Labels                    []string
-	Weight                    float64 // effective_balance / 32 ETH
-	MissedAttestations        uint64
-	SuboptimalSourceVotes     uint64
-	SuboptimalTargetVotes     uint64
-	SuboptimalHeadVotes       uint64
-	IdealConsensusRewards     models.Gwei        // Ideal is always positive
-	ConsensusRewards          models.SignedGwei  // Actual can be negative (penalties)
-	ProposedBlocks            uint64
-	ProposedBlocksFinalized   uint64
-	MissedBlocks              uint64
-	MissedBlocksFinalized     uint64
-	FutureBlockProposals      uint64
-	AttestationDuties         uint64
-	AttestationDutiesSuccess  uint64
-	ConsecutiveMissedAttest   uint64
+	Labels                   []string
+	Weight                   float64 // effective_balance / 32 ETH
+	MissedAttestations       uint64
+	SuboptimalSourceVotes    uint64
+	SuboptimalTargetVotes    uint64
+	SuboptimalHeadVotes      uint64
+	IdealConsensusRewards    models.Gwei       // Ideal is always positive
+	ConsensusRewards         models.SignedGwei // Actual can be negative (penalties)
+	ProposedBlocks           uint64
+	ProposedBlocksFinalized  uint64
+	MissedBlocks             uint64
+	MissedBlocksFinalized    uint64
+	FutureBlockProposals     uint64
+	AttestationDuties        uint64
+	AttestationDutiesSuccess uint64
+	ConsecutiveMissedAttest  uint64
 }
 
 // AllValidators represents the full validator set (2M+)

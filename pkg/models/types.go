@@ -89,10 +89,10 @@ type BeaconHeader struct {
 
 // Validator represents a beacon chain validator
 type Validator struct {
-	Index     ValidatorIndex  `json:"index,string"`
-	Balance   Gwei            `json:"balance,string"`
-	Status    ValidatorStatus `json:"status"`
-	Data      struct {
+	Index   ValidatorIndex  `json:"index,string"`
+	Balance Gwei            `json:"balance,string"`
+	Status  ValidatorStatus `json:"status"`
+	Data    struct {
 		Pubkey                     string `json:"pubkey"`
 		WithdrawalCredentials      string `json:"withdrawal_credentials"`
 		EffectiveBalance           Gwei   `json:"effective_balance,string"`
@@ -141,7 +141,7 @@ type BlockResponse struct {
 
 // AttestationData represents attestation data
 type AttestationData struct {
-	Slot            Slot `json:"slot,string"`
+	Slot            Slot   `json:"slot,string"`
 	Index           uint64 `json:"index,string"`
 	BeaconBlockRoot string `json:"beacon_block_root"`
 	Source          struct {
@@ -255,16 +255,16 @@ type StateIDRequest struct {
 
 // Config represents the watcher configuration
 type Config struct {
-	Network             string       `yaml:"network"`
-	BeaconURL           string       `yaml:"beacon_url"`
-	BeaconTimeout       Duration     `yaml:"beacon_timeout_sec"`
-	MetricsPort         int          `yaml:"metrics_port"`
-	WatchedKeys         []WatchedKey `yaml:"watched_keys"`
-	SlackToken          string       `yaml:"slack_token,omitempty"`
-	SlackChannel        string       `yaml:"slack_channel,omitempty"`
-	ReplayStartAtTS     *uint64      `yaml:"replay_start_at_ts,omitempty"`
-	ReplayEndAtTS       *uint64      `yaml:"replay_end_at_ts,omitempty"`
-	LoadAllValidators   *bool        `yaml:"load_all_validators,omitempty"` // Default true - load full 2M+ validator set for network comparison
+	Network           string       `yaml:"network"`
+	BeaconURL         string       `yaml:"beacon_url"`
+	BeaconTimeout     Duration     `yaml:"beacon_timeout_sec"`
+	MetricsPort       int          `yaml:"metrics_port"`
+	WatchedKeys       []WatchedKey `yaml:"watched_keys"`
+	SlackToken        string       `yaml:"slack_token,omitempty"`
+	SlackChannel      string       `yaml:"slack_channel,omitempty"`
+	ReplayStartAtTS   *uint64      `yaml:"replay_start_at_ts,omitempty"`
+	ReplayEndAtTS     *uint64      `yaml:"replay_end_at_ts,omitempty"`
+	LoadAllValidators *bool        `yaml:"load_all_validators,omitempty"` // Default true - load full 2M+ validator set for network comparison
 }
 
 // ShouldLoadAllValidators returns whether to load the full validator set (default true)

@@ -53,10 +53,10 @@ func main() {
 	}
 
 	logger.WithFields(logrus.Fields{
-		"network":         cfg.Network,
-		"beacon_url":      cfg.BeaconURL,
-		"metrics_port":    cfg.MetricsPort,
-		"watched_count":   len(cfg.WatchedKeys),
+		"network":       cfg.Network,
+		"beacon_url":    cfg.BeaconURL,
+		"metrics_port":  cfg.MetricsPort,
+		"watched_count": len(cfg.WatchedKeys),
 	}).Info("Configuration loaded")
 
 	// Create watcher

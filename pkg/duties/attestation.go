@@ -172,10 +172,10 @@ func ProcessRewards(rewards *models.RewardsResponse, validators map[models.Valid
 		}
 
 		data := RewardData{
-			IdealHead:   ideal.Head,
-			IdealTarget: ideal.Target,
-			IdealSource: ideal.Source,
-			ActualHead:  total.Head,
+			IdealHead:    ideal.Head,
+			IdealTarget:  ideal.Target,
+			IdealSource:  ideal.Source,
+			ActualHead:   total.Head,
 			ActualTarget: total.Target,
 			ActualSource: total.Source,
 		}

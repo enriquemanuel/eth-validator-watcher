@@ -313,9 +313,9 @@ func (w *ValidatorWatcher) mainLoop(ctx context.Context) error {
 		// Log slot info every 10 slots or if it's the first slot of an epoch
 		if currentSlot%10 == 0 || w.clock.IsFirstSlotOfEpoch(currentSlot) {
 			w.logger.WithFields(logrus.Fields{
-				"slot":           currentSlot,
-				"epoch":          currentEpoch,
-				"slot_in_epoch":  currentSlot % models.Slot(w.clock.SlotsPerEpoch()),
+				"slot":               currentSlot,
+				"epoch":              currentEpoch,
+				"slot_in_epoch":      currentSlot % models.Slot(w.clock.SlotsPerEpoch()),
 				"watched_validators": w.watchedValidators.Count(),
 			}).Info("📊 Slot checkpoint")
 		}
@@ -797,12 +797,12 @@ func (w *ValidatorWatcher) processRewards(ctx context.Context, epoch models.Epoc
 
 	// Log rewards summary
 	logFields := logrus.Fields{
-		"epoch":             epoch,
-		"validators":        len(rewardData),
-		"ideal_gwei":        totalIdeal,
-		"actual_gwei":       totalActual,
-		"performance_rate":  fmt.Sprintf("%.2f%%", performanceRate),
-		"penalties":         negativeRewardsCount,
+		"epoch":            epoch,
+		"validators":       len(rewardData),
+		"ideal_gwei":       totalIdeal,
+		"actual_gwei":      totalActual,
+		"performance_rate": fmt.Sprintf("%.2f%%", performanceRate),
+		"penalties":        negativeRewardsCount,
 	}
 
 	if suboptimalSourceCount > 0 || suboptimalTargetCount > 0 || suboptimalHeadCount > 0 {
@@ -844,11 +844,11 @@ func (w *ValidatorWatcher) updateMetrics(slot models.Slot, epoch models.Epoch) {
 	// Log summary
 	if watchedMetrics, ok := metricsByLabel["scope:watched"]; ok {
 		w.logger.WithFields(logrus.Fields{
-			"validators":           watchedMetrics.ValidatorCount,
-			"missed_attestations":  watchedMetrics.MissedAttestations,
-			"proposed_blocks":      watchedMetrics.ProposedBlocks,
-			"missed_blocks":        watchedMetrics.MissedBlocks,
-			"consensus_rate":       watchedMetrics.ConsensusRewardsRate,
+			"validators":          watchedMetrics.ValidatorCount,
+			"missed_attestations": watchedMetrics.MissedAttestations,
+			"proposed_blocks":     watchedMetrics.ProposedBlocks,
+			"missed_blocks":       watchedMetrics.MissedBlocks,
+			"consensus_rate":      watchedMetrics.ConsensusRewardsRate,
 		}).Info("Metrics updated")
 	}
 
@@ -874,13 +874,13 @@ func (w *ValidatorWatcher) updateMetrics(slot models.Slot, epoch models.Epoch) {
 			}
 
 			logFields := logrus.Fields{
-				"label":                label,
-				"validators":           metrics.ValidatorCount,
-				"active_validators":    activeCount,
-				"performance_rate":     fmt.Sprintf("%.2f%%", performanceRate),
-				"missed_attestations":  metrics.MissedAttestations,
-				"attestation_duties":   metrics.AttestationDuties,
-				"miss_rate":            fmt.Sprintf("%.2f%%", missRate),
+				"label":               label,
+				"validators":          metrics.ValidatorCount,
+				"active_validators":   activeCount,
+				"performance_rate":    fmt.Sprintf("%.2f%%", performanceRate),
+				"missed_attestations": metrics.MissedAttestations,
+				"attestation_duties":  metrics.AttestationDuties,
+				"miss_rate":           fmt.Sprintf("%.2f%%", missRate),
 			}
 
 			if metrics.ProposedBlocks > 0 || metrics.MissedBlocks > 0 {
@@ -941,8 +941,8 @@ func (w *ValidatorWatcher) getTopOffendingValidators(label string, limit int) st
 		// Skip validators that are not expected to be attesting
 		// Only include active validators (active_ongoing, active_exiting, active_slashed)
 		if v.Status != models.StatusActiveOngoing &&
-		   v.Status != models.StatusActiveExiting &&
-		   v.Status != models.StatusActiveSlashed {
+			v.Status != models.StatusActiveExiting &&
+			v.Status != models.StatusActiveSlashed {
 			continue
 		}
 

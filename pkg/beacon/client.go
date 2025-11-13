@@ -15,8 +15,8 @@ import (
 )
 
 const (
-	maxRetries     = 3
-	retryDelay     = 2 * time.Second
+	maxRetries      = 3
+	retryDelay      = 2 * time.Second
 	contentTypeJSON = "application/json"
 )
 
