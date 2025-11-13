@@ -1,0 +1,169 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    outputs:
+      version: ${{ steps.get_version.outputs.version }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get version from tag
+        id: get_version
+        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=sha
+            type=raw,value=latest
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64,linux/arm64
+
+  update-helm-chart:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Update Helm chart version and appVersion
+        env:
+          VERSION: ${{ needs.build-and-push.outputs.version }}
+        run: |
+          # Update Chart.yaml
+          sed -i "s/^version:.*/version: ${VERSION}/" charts/eth-validator-watcher/Chart.yaml
+          sed -i "s/^appVersion:.*/appVersion: \"${VERSION}\"/" charts/eth-validator-watcher/Chart.yaml
+
+          # Update values.yaml with new image tag
+          sed -i "s/tag:.*/tag: ${VERSION}/" charts/eth-validator-watcher/values.yaml
+
+      - name: Commit Helm chart changes
+        env:
+          VERSION: ${{ needs.build-and-push.outputs.version }}
+        run: |
+          git add charts/eth-validator-watcher/Chart.yaml
+          git add charts/eth-validator-watcher/values.yaml
+          git commit -m "chore: update Helm chart to version ${VERSION}" || echo "No changes to commit"
+          git push origin HEAD:main || echo "Nothing to push"
+
+  publish-helm-chart:
+    needs: [build-and-push, update-helm-chart]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Install Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: 'latest'
+
+      - name: Package Helm chart
+        run: |
+          mkdir -p .helm-repo
+          helm package charts/eth-validator-watcher -d .helm-repo
+
+      - name: Create Helm repo index
+        run: |
+          cd .helm-repo
+          helm repo index . --url https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: .helm-repo
+          keep_files: true
+
+  create-release:
+    needs: [build-and-push, update-helm-chart, publish-helm-chart]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Create GitHub Release
+        env:
+          VERSION: ${{ needs.build-and-push.outputs.version }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "v${VERSION}" \
+            --title "Release v${VERSION}" \
+            --generate-notes \
+            --notes "
+          ## Docker Image
+
+          \`\`\`bash
+          docker pull ghcr.io/${{ github.repository }}:${VERSION}
+          \`\`\`
+
+          ## Helm Chart
+
+          \`\`\`bash
+          helm repo add eth-validator-watcher https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
+          helm repo update
+          helm install eth-validator-watcher eth-validator-watcher/eth-validator-watcher --version ${VERSION}
+          \`\`\`
+          "

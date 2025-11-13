@@ -1,25 +1,56 @@
-FROM python:3.12-bookworm as builder
+# Multi-stage build for Ethereum Validator Watcher (Go)
+FROM golang:1.21-alpine AS builder
 
-RUN pip install uv
+# Install build dependencies
+RUN apk add --no-cache git make
 
+# Set working directory
 WORKDIR /app
 
-COPY eth_validator_watcher /app/eth_validator_watcher
-COPY pyproject.toml /app/pyproject.toml
-COPY setup.py /app/setup.py
-COPY README.md /app/README.md
-COPY tests /app/tests
-COPY build.py /app/build.py
+# Copy go mod files
+COPY go.mod go.sum ./
 
-RUN uv venv /virtualenv && . /virtualenv/bin/activate && uv pip install -e .
-    
-FROM python:3.12-slim-bookworm
+# Download dependencies
+RUN go mod download
 
-COPY --from=builder /virtualenv /virtualenv
-COPY --from=builder /app /app
-ENV PATH="/virtualenv/bin:$PATH"
+# Copy source code
+COPY . .
 
-WORKDIR /app
+# Build the binary
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo \
+    -ldflags="-w -s" \
+    -o eth-validator-watcher ./cmd/watcher
 
-ENTRYPOINT [ "eth-validator-watcher" ]
-   
+# Final stage
+FROM alpine:latest
+
+# Install ca-certificates for HTTPS
+RUN apk --no-cache add ca-certificates tzdata
+
+# Create non-root user
+RUN addgroup -g 1000 watcher && \
+    adduser -D -u 1000 -G watcher watcher
+
+# Set working directory
+WORKDIR /home/watcher
+
+# Copy binary from builder
+COPY --from=builder /app/eth-validator-watcher /usr/local/bin/eth-validator-watcher
+
+# Copy example config
+COPY config.example.yaml /home/watcher/config.example.yaml
+
+# Change ownership
+RUN chown -R watcher:watcher /home/watcher
+
+# Switch to non-root user
+USER watcher
+
+# Expose metrics port
+EXPOSE 8080
+
+# Set entrypoint
+ENTRYPOINT ["eth-validator-watcher"]
+
+# Default command
+CMD ["-config", "config.yaml"]

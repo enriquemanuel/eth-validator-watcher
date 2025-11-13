@@ -1,9 +1,17 @@
 apiVersion: v2
-name: ethereum-validator-watcher
-description: A Helm chart to deploy ethereum-validator-watcher on Kubernetes
+name: eth-validator-watcher
+description: Ethereum Validator Watcher - High-performance validator monitoring with Prometheus metrics
 type: application
-version: 2.0.0
-appVersion: mxs-0.0.8-beta1
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - ethereum
+  - validator
+  - monitoring
+  - prometheus
+home: https://github.com/enriquemanuel/eth-validator-watcher
+sources:
+  - https://github.com/enriquemanuel/eth-validator-watcher
 maintainers:
-  - name: kiln
-    email: contact@kiln.fi
+  - name: Enrique Valenzuela
+    email: enrique@valenzuela.co

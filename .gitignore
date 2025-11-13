@@ -1,44 +1,63 @@
-# UV package manager
-.uv/
-uv.lock
-
-# Python bytecode
-__pycache__/
-*.py[cod]
-*$py.class
-
-# Distribution / packaging
-dist/
+# Go build artifacts
 build/
-*.egg-info/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+eth-validator-watcher
 
-# Virtual environments
-.env/
-.venv/
-env/
-venv/
-ENV/
+# Test binary, built with `go test -c`
+*.test
 
-# Testing
-.pytest_cache/
-.coverage
-htmlcov/
+# Output of the go coverage tool
+*.out
+coverage.html
+coverage.out
+
+# Go workspace file
+go.work
+
+# Dependency directories
+vendor/
 
 # IDE specific files
 .idea/
 .vscode/
 *.swp
 *.swo
+*~
 
-# OS specific
+# macOS
 .DS_Store
 Thumbs.db
 
-# Pybind specific
-*.so
+# Configuration files (keep examples)
+config.yaml
+config.local.yaml
 
-# Docs
-site/
+# Logs
+*.log
+
+# Temporary files
+tmp/
+temp/
+
+# Docker volumes
+data/
+prometheus-data/
+grafana-data/
+
+# Profiling data
+*.prof
+*.pprof
+
+# Environment files
+.env
+.env.local
+
+# Build cache
+.cache/
 
 # Agent
 CLAUDE.md

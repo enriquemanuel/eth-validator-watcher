@@ -1,0 +1,15 @@
+beacon_url: "https://beacon-node.example.com"
+beacon_timeout_sec: 90
+network: mainnet
+metrics_port: 8000
+
+# Load all validators for network-wide comparison (default: true)
+# Set to false to only load your watched validators (faster startup, but no network comparison)
+# load_all_validators: true
+
+watched_keys:
+  - public_key: '0xexample01'
+    labels: ["operator:unnamed", "name:Lido1", "key:0xyayayaya"]
+  - public_key: '0xexample02'
+    labels: ["operator:me", "name:BlockDaemonExample", "key:0x1010101", "region:us"]
+  
