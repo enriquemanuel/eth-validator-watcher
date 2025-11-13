@@ -91,8 +91,8 @@ jobs:
         env:
           VERSION: ${{ needs.build-and-push.outputs.version }}
         run: |
-          git add charts/eth-validator-watcher/Chart.yaml
-          git add charts/eth-validator-watcher/values.yaml
+          git add -f charts/eth-validator-watcher/Chart.yaml
+          git add -f charts/eth-validator-watcher/values.yaml
           git commit -m "chore: update Helm chart to version ${VERSION}" || echo "No changes to commit"
           git push origin HEAD:main || echo "Nothing to push"
 
