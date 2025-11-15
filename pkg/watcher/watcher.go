@@ -11,6 +11,7 @@ import (
 	"github.com/enriquemanuel/eth-validator-watcher/pkg/duties"
 	"github.com/enriquemanuel/eth-validator-watcher/pkg/metrics"
 	"github.com/enriquemanuel/eth-validator-watcher/pkg/models"
+	"github.com/enriquemanuel/eth-validator-watcher/pkg/price"
 	"github.com/enriquemanuel/eth-validator-watcher/pkg/proposer"
 	"github.com/enriquemanuel/eth-validator-watcher/pkg/validator"
 	"github.com/prometheus/client_golang/prometheus"
@@ -27,6 +28,7 @@ type ValidatorWatcher struct {
 	allValidators      *validator.AllValidators
 	watchedValidators  *validator.WatchedValidators
 	prometheusMetrics  *metrics.PrometheusMetrics
+	priceFetcher       *price.Fetcher
 	registry           *prometheus.Registry
 	logger             *logrus.Logger
 	lastProcessedEpoch models.Epoch
@@ -46,12 +48,16 @@ func NewValidatorWatcher(cfg *models.Config, logger *logrus.Logger) (*ValidatorW
 	registry := prometheus.NewRegistry()
 	prometheusMetrics := metrics.NewPrometheusMetrics(registry)
 
+	// Create price fetcher
+	priceFetcher := price.NewFetcher(logger)
+
 	watcher := &ValidatorWatcher{
 		config:            cfg,
 		beaconClient:      beaconClient,
 		allValidators:     allValidators,
 		watchedValidators: watchedValidators,
 		prometheusMetrics: prometheusMetrics,
+		priceFetcher:      priceFetcher,
 		registry:          registry,
 		logger:            logger,
 	}
@@ -839,7 +845,10 @@ func (w *ValidatorWatcher) updateMetrics(slot models.Slot, epoch models.Epoch) {
 	metricsByLabel["scope:all-network"] = networkMetrics
 
 	// Update Prometheus
-	w.prometheusMetrics.UpdateMetrics(metricsByLabel, slot, epoch)
+	w.prometheusMetrics.UpdateMetrics(metricsByLabel, slot, epoch, w.config.Network)
+
+	// Fetch and update network-level metrics
+	w.updateNetworkMetrics()
 
 	// Log summary
 	if watchedMetrics, ok := metricsByLabel["scope:watched"]; ok {
@@ -1037,4 +1046,57 @@ func (w *ValidatorWatcher) startMetricsServer() {
 	if err := server.ListenAndServe(); err != nil {
 		w.logger.WithError(err).Error("Metrics server failed")
 	}
+}
+
+// updateNetworkMetrics fetches and updates network-level metrics (price, pending operations)
+func (w *ValidatorWatcher) updateNetworkMetrics() {
+	ctx := context.Background()
+	network := w.config.Network
+
+	// Fetch ETH price from Coinbase
+	ethPrice := w.priceFetcher.GetCurrentETHPrice()
+
+	// Fetch pending deposits
+	var pendingDepositsCount, pendingDepositsValue float64
+	if deposits, err := w.beaconClient.GetPendingDeposits(ctx, "head"); err == nil {
+		pendingDepositsCount = float64(len(deposits))
+		for _, deposit := range deposits {
+			pendingDepositsValue += float64(deposit.Amount)
+		}
+	} else {
+		w.logger.WithError(err).Debug("Failed to fetch pending deposits")
+	}
+
+	// Fetch pending consolidations
+	var pendingConsolidationsCount float64
+	if consolidations, err := w.beaconClient.GetPendingConsolidations(ctx, "head"); err == nil {
+		pendingConsolidationsCount = float64(len(consolidations))
+	} else {
+		w.logger.WithError(err).Debug("Failed to fetch pending consolidations")
+	}
+
+	// Fetch pending withdrawals
+	var pendingWithdrawalsCount float64
+	if withdrawals, err := w.beaconClient.GetPendingWithdrawals(ctx, "head"); err == nil {
+		pendingWithdrawalsCount = float64(len(withdrawals))
+	} else {
+		w.logger.WithError(err).Debug("Failed to fetch pending withdrawals")
+	}
+
+	// Set network metrics
+	w.prometheusMetrics.SetNetworkMetrics(
+		network,
+		ethPrice,
+		pendingDepositsCount,
+		pendingDepositsValue,
+		pendingConsolidationsCount,
+		pendingWithdrawalsCount,
+	)
+
+	w.logger.WithFields(logrus.Fields{
+		"eth_price":             ethPrice,
+		"pending_deposits":      pendingDepositsCount,
+		"pending_consolidations": pendingConsolidationsCount,
+		"pending_withdrawals":   pendingWithdrawalsCount,
+	}).Debug("Updated network metrics")
 }

@@ -2,11 +2,41 @@ package metrics
 
 import (
 	"runtime"
+	"strings"
 	"sync"
 
 	"github.com/enriquemanuel/eth-validator-watcher/pkg/models"
 	"github.com/enriquemanuel/eth-validator-watcher/pkg/validator"
 )
+
+// getValidatorType extracts the validator type from withdrawal credentials
+// Returns "0", "1", or "2" for 0x00 (BLS), 0x01 (execution), 0x02 (compounding)
+func getValidatorType(withdrawalCredentials string) string {
+	// Withdrawal credentials is a hex string like "0x00..." or "0x01..." or "0x02..."
+	if len(withdrawalCredentials) < 4 {
+		return "0" // Default to 0x00 (BLS) if invalid
+	}
+
+	// Remove "0x" prefix and get first byte
+	cleaned := strings.TrimPrefix(withdrawalCredentials, "0x")
+	if len(cleaned) < 2 {
+		return "0"
+	}
+
+	// Extract first byte (first 2 hex chars)
+	firstByte := cleaned[0:2]
+
+	switch firstByte {
+	case "00":
+		return "0" // BLS withdrawal credentials
+	case "01":
+		return "1" // Execution layer withdrawal address (0x01)
+	case "02":
+		return "2" // Compounding credentials (EIP-7251)
+	default:
+		return "0" // Default to BLS
+	}
+}
 
 // MetricsByLabel represents aggregated metrics per label
 type MetricsByLabel struct {
@@ -38,10 +68,23 @@ type MetricsByLabel struct {
 	AttestationDuties        uint64
 	AttestationDutiesSuccess uint64
 	AttestationDutiesRate    float64
+	AttestationDutiesStake   float64 // Stake-weighted duties
 
 	// Status breakdown
 	StatusCounts map[models.ValidatorStatus]int
 	StatusStakes map[models.ValidatorStatus]float64
+
+	// Validator type breakdown (by withdrawal credentials)
+	ValidatorTypeCounts map[string]int     // "0", "1", "2" for 0x00, 0x01, 0x02
+	ValidatorTypeStakes map[string]float64 // Stake by type
+
+	// Slashing
+	SlashedCount int
+	SlashedStake float64
+
+	// Consecutive missed attestations
+	MaxConsecutiveMissed       uint64  // Max consecutive missed
+	MaxConsecutiveMissedStake  float64 // Stake-weighted max consecutive missed
 
 	// Details for logging (limited to 5)
 	MissedAttestationDetails []ValidatorDetail
@@ -100,9 +143,11 @@ func ComputeMetrics(validators []*validator.WatchedValidator, slot models.Slot) 
 					metrics, ok := localMetrics[label]
 					if !ok {
 						metrics = &MetricsByLabel{
-							Label:        label,
-							StatusCounts: make(map[models.ValidatorStatus]int),
-							StatusStakes: make(map[models.ValidatorStatus]float64),
+							Label:              label,
+							StatusCounts:       make(map[models.ValidatorStatus]int),
+							StatusStakes:       make(map[models.ValidatorStatus]float64),
+							ValidatorTypeCounts: make(map[string]int),
+							ValidatorTypeStakes: make(map[string]float64),
 						}
 						localMetrics[label] = metrics
 					}
@@ -117,6 +162,26 @@ func ComputeMetrics(validators []*validator.WatchedValidator, slot models.Slot) 
 					metrics.StakeCount += v.Weight
 					metrics.StatusCounts[v.Status]++
 					metrics.StatusStakes[v.Status] += v.Weight
+
+					// Track validator type from withdrawal credentials
+					validatorType := getValidatorType(v.Data.WithdrawalCredentials)
+					metrics.ValidatorTypeCounts[validatorType]++
+					metrics.ValidatorTypeStakes[validatorType] += v.Weight
+
+					// Track slashed validators
+					if v.Data.Slashed {
+						metrics.SlashedCount++
+						metrics.SlashedStake += v.Weight
+					}
+
+					// Track max consecutive missed attestations
+					if v.ConsecutiveMissedAttest > metrics.MaxConsecutiveMissed {
+						metrics.MaxConsecutiveMissed = v.ConsecutiveMissedAttest
+					}
+					consecStakeWeighted := float64(v.ConsecutiveMissedAttest) * v.Weight
+					if consecStakeWeighted > metrics.MaxConsecutiveMissedStake {
+						metrics.MaxConsecutiveMissedStake = consecStakeWeighted
+					}
 
 					// Only aggregate performance metrics for ACTIVE validators
 					if isActive {
@@ -134,6 +199,7 @@ func ComputeMetrics(validators []*validator.WatchedValidator, slot models.Slot) 
 						metrics.ConsensusRewards += v.ConsensusRewards
 						metrics.AttestationDuties += v.AttestationDuties
 						metrics.AttestationDutiesSuccess += v.AttestationDutiesSuccess
+						metrics.AttestationDutiesStake += float64(v.AttestationDuties) * v.Weight
 					}
 
 					// Block proposals should be counted regardless of validator status
@@ -198,9 +264,11 @@ func ComputeMetrics(validators []*validator.WatchedValidator, slot models.Slot) 
 		for label, metrics := range result.metrics {
 			if _, ok := finalMetrics[label]; !ok {
 				finalMetrics[label] = &MetricsByLabel{
-					Label:        label,
-					StatusCounts: make(map[models.ValidatorStatus]int),
-					StatusStakes: make(map[models.ValidatorStatus]float64),
+					Label:              label,
+					StatusCounts:       make(map[models.ValidatorStatus]int),
+					StatusStakes:       make(map[models.ValidatorStatus]float64),
+					ValidatorTypeCounts: make(map[string]int),
+					ValidatorTypeStakes: make(map[string]float64),
 				}
 			}
 
@@ -226,6 +294,19 @@ func ComputeMetrics(validators []*validator.WatchedValidator, slot models.Slot) 
 			fm.ConsensusRewards += metrics.ConsensusRewards
 			fm.AttestationDuties += metrics.AttestationDuties
 			fm.AttestationDutiesSuccess += metrics.AttestationDutiesSuccess
+			fm.AttestationDutiesStake += metrics.AttestationDutiesStake
+
+			// Merge slashing metrics
+			fm.SlashedCount += metrics.SlashedCount
+			fm.SlashedStake += metrics.SlashedStake
+
+			// Merge consecutive missed attestations (take max)
+			if metrics.MaxConsecutiveMissed > fm.MaxConsecutiveMissed {
+				fm.MaxConsecutiveMissed = metrics.MaxConsecutiveMissed
+			}
+			if metrics.MaxConsecutiveMissedStake > fm.MaxConsecutiveMissedStake {
+				fm.MaxConsecutiveMissedStake = metrics.MaxConsecutiveMissedStake
+			}
 
 			// Merge status counts
 			for status, count := range metrics.StatusCounts {
@@ -233,6 +314,14 @@ func ComputeMetrics(validators []*validator.WatchedValidator, slot models.Slot) 
 			}
 			for status, stake := range metrics.StatusStakes {
 				fm.StatusStakes[status] += stake
+			}
+
+			// Merge validator type counts
+			for validatorType, count := range metrics.ValidatorTypeCounts {
+				fm.ValidatorTypeCounts[validatorType] += count
+			}
+			for validatorType, stake := range metrics.ValidatorTypeStakes {
+				fm.ValidatorTypeStakes[validatorType] += stake
 			}
 
 			// Merge details (keep first 5)
@@ -280,9 +369,11 @@ func ComputeMetrics(validators []*validator.WatchedValidator, slot models.Slot) 
 // ComputeNetworkMetrics computes aggregate network-wide metrics from all validators
 func ComputeNetworkMetrics(allValidators []models.Validator) *MetricsByLabel {
 	metrics := &MetricsByLabel{
-		Label:        "scope:all-network",
-		StatusCounts: make(map[models.ValidatorStatus]int),
-		StatusStakes: make(map[models.ValidatorStatus]float64),
+		Label:              "scope:all-network",
+		StatusCounts:       make(map[models.ValidatorStatus]int),
+		StatusStakes:       make(map[models.ValidatorStatus]float64),
+		ValidatorTypeCounts: make(map[string]int),
+		ValidatorTypeStakes: make(map[string]float64),
 	}
 
 	for _, v := range allValidators {
@@ -292,6 +383,17 @@ func ComputeNetworkMetrics(allValidators []models.Validator) *MetricsByLabel {
 		metrics.StakeCount += weight
 		metrics.StatusCounts[v.Status]++
 		metrics.StatusStakes[v.Status] += weight
+
+		// Track validator type
+		validatorType := getValidatorType(v.Data.WithdrawalCredentials)
+		metrics.ValidatorTypeCounts[validatorType]++
+		metrics.ValidatorTypeStakes[validatorType] += weight
+
+		// Track slashed validators
+		if v.Data.Slashed {
+			metrics.SlashedCount++
+			metrics.SlashedStake += weight
+		}
 	}
 
 	return metrics
