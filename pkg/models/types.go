@@ -127,6 +127,7 @@ type Block struct {
 		Slot          Slot   `json:"slot,string"`
 		ProposerIndex uint64 `json:"proposer_index,string"`
 		Body          struct {
+			Attestations     []Attestation `json:"attestations"`
 			ExecutionPayload *struct {
 				FeeRecipient string `json:"fee_recipient"`
 			} `json:"execution_payload,omitempty"`
@@ -268,6 +269,8 @@ type Config struct {
 }
 
 // ShouldLoadAllValidators returns whether to load the full validator set (default true)
+// When enabled, loads all validators via stream processing to compute network aggregates
+// Memory efficient: only stores pubkey->index map (~16MB) + aggregates (~1KB), not individual validators
 func (c *Config) ShouldLoadAllValidators() bool {
 	if c.LoadAllValidators == nil {
 		return true // Default behavior: load all validators like Kiln

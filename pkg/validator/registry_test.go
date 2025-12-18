@@ -22,7 +22,11 @@ func TestAllValidatorsUpdate(t *testing.T) {
 		},
 	}
 	validators[0].Data.Pubkey = "0xabc123"
+	validators[0].Data.EffectiveBalance = 32000000000
+	validators[0].Data.WithdrawalCredentials = "0x01abc"
 	validators[1].Data.Pubkey = "0xdef456"
+	validators[1].Data.EffectiveBalance = 32000000000
+	validators[1].Data.WithdrawalCredentials = "0x02def"
 
 	av.Update(validators)
 
@@ -30,20 +34,94 @@ func TestAllValidatorsUpdate(t *testing.T) {
 		t.Errorf("Expected 2 validators, got %d", av.Count())
 	}
 
-	v, ok := av.Get(100)
-	if !ok {
-		t.Fatal("Expected to find validator 100")
-	}
-	if v.Index != 100 {
-		t.Errorf("Expected index 100, got %d", v.Index)
+	// Get() is no longer supported (we don't store individual validators)
+	// Only index lookup via pubkey is supported
+	_, ok := av.Get(100)
+	if ok {
+		t.Error("Expected Get() to return false (not supported)")
 	}
 
+	// GetByPubkey returns minimal validator with just index
 	v2, ok := av.GetByPubkey("0xabc123")
 	if !ok {
 		t.Fatal("Expected to find validator by pubkey")
 	}
 	if v2.Index != 100 {
 		t.Errorf("Expected index 100, got %d", v2.Index)
+	}
+
+	// GetIndexByPubkey is the preferred method
+	idx, ok := av.GetIndexByPubkey("0xdef456")
+	if !ok {
+		t.Fatal("Expected to find validator index by pubkey")
+	}
+	if idx != 200 {
+		t.Errorf("Expected index 200, got %d", idx)
+	}
+}
+
+func TestAllValidatorsAggregates(t *testing.T) {
+	av := NewAllValidators()
+
+	validators := []models.Validator{
+		{
+			Index:   100,
+			Balance: 32000000000,
+			Status:  models.StatusActiveOngoing,
+		},
+		{
+			Index:   200,
+			Balance: 32000000000,
+			Status:  models.StatusActiveExiting,
+		},
+		{
+			Index:   300,
+			Balance: 64000000000, // 64 ETH - MaxEB validator
+			Status:  models.StatusActiveOngoing,
+		},
+	}
+	validators[0].Data.Pubkey = "0xabc123"
+	validators[0].Data.EffectiveBalance = 32000000000
+	validators[0].Data.WithdrawalCredentials = "0x01abc"
+	validators[1].Data.Pubkey = "0xdef456"
+	validators[1].Data.EffectiveBalance = 32000000000
+	validators[1].Data.WithdrawalCredentials = "0x01def"
+	validators[2].Data.Pubkey = "0x789ghi"
+	validators[2].Data.EffectiveBalance = 64000000000 // 64 ETH
+	validators[2].Data.WithdrawalCredentials = "0x02xyz" // 0x02 type
+
+	av.Update(validators)
+
+	aggregates := av.GetNetworkAggregates()
+
+	if aggregates.TotalValidators != 3 {
+		t.Errorf("Expected 3 total validators, got %d", aggregates.TotalValidators)
+	}
+
+	// TotalStake should be 4 (32 ETH + 32 ETH + 64 ETH = 128 ETH = 4 * 32 ETH units)
+	if aggregates.TotalStake != 4.0 {
+		t.Errorf("Expected total stake 4.0, got %f", aggregates.TotalStake)
+	}
+
+	// Check status counts
+	if aggregates.StatusCounts[models.StatusActiveOngoing] != 2 {
+		t.Errorf("Expected 2 active_ongoing, got %d", aggregates.StatusCounts[models.StatusActiveOngoing])
+	}
+	if aggregates.StatusCounts[models.StatusActiveExiting] != 1 {
+		t.Errorf("Expected 1 active_exiting, got %d", aggregates.StatusCounts[models.StatusActiveExiting])
+	}
+
+	// Check type counts
+	if aggregates.TypeCounts[ValidatorType0x01] != 2 {
+		t.Errorf("Expected 2 0x01 validators, got %d", aggregates.TypeCounts[ValidatorType0x01])
+	}
+	if aggregates.TypeCounts[ValidatorType0x02] != 1 {
+		t.Errorf("Expected 1 0x02 validator, got %d", aggregates.TypeCounts[ValidatorType0x02])
+	}
+
+	// Check type stakes (in ETH)
+	if aggregates.TypeStakes[ValidatorType0x02] != 64.0 {
+		t.Errorf("Expected 64 ETH for 0x02 validators, got %f", aggregates.TypeStakes[ValidatorType0x02])
 	}
 }
 
@@ -250,6 +328,8 @@ func TestAllValidatorsConcurrency(t *testing.T) {
 			Status:  models.StatusActiveOngoing,
 		}
 		validators[i].Data.Pubkey = string(rune(i))
+		validators[i].Data.EffectiveBalance = 32000000000
+		validators[i].Data.WithdrawalCredentials = "0x01abc"
 	}
 
 	av.Update(validators)
@@ -259,8 +339,9 @@ func TestAllValidatorsConcurrency(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		go func() {
 			for j := 0; j < 100; j++ {
-				av.Get(models.ValidatorIndex(j))
+				av.GetIndexByPubkey(string(rune(j)))
 				av.Count()
+				av.GetNetworkAggregates()
 			}
 			done <- true
 		}()
@@ -268,5 +349,34 @@ func TestAllValidatorsConcurrency(t *testing.T) {
 
 	for i := 0; i < 10; i++ {
 		<-done
+	}
+}
+
+func TestGetIndices(t *testing.T) {
+	wv := NewWatchedValidators()
+
+	validators := []models.Validator{
+		{Index: 100},
+		{Index: 200},
+		{Index: 300},
+	}
+	validators[0].Data.Pubkey = "0xabc123"
+	validators[0].Data.EffectiveBalance = 32000000000
+	validators[1].Data.Pubkey = "0xdef456"
+	validators[1].Data.EffectiveBalance = 32000000000
+	validators[2].Data.Pubkey = "0x789ghi"
+	validators[2].Data.EffectiveBalance = 32000000000
+
+	config := []models.WatchedKey{
+		{PublicKey: "0xabc123"},
+		{PublicKey: "0xdef456"},
+		{PublicKey: "0x789ghi"},
+	}
+
+	wv.Update(validators, config)
+
+	indices := wv.GetIndices()
+	if len(indices) != 3 {
+		t.Errorf("Expected 3 indices, got %d", len(indices))
 	}
 }

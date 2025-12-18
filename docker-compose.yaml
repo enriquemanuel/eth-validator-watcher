@@ -1,23 +1,26 @@
-version: '3.8'
-
 services:
   watcher:
     build:
       context: .
-      dockerfile: Dockerfile.go
+      dockerfile: Dockerfile
+      args:
+        - BUILDKIT_INLINE_CACHE=1
     container_name: eth-validator-watcher
     restart: unless-stopped
     ports:
       - "8000:8000"
     volumes:
       - ./config.yaml:/home/watcher/config.yaml:ro
-    environment:
-      - ETH_WATCHER_NETWORK=mainnet
-      - ETH_WATCHER_BEACON_URL=http://beacon-node:5052
     depends_on:
       - prometheus
     networks:
       - eth-monitoring
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:8000/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
 
   prometheus:
     image: prom/prometheus:latest
@@ -26,7 +29,7 @@ services:
     ports:
       - "9090:9090"
     volumes:
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus-data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
@@ -37,15 +40,17 @@ services:
       - eth-monitoring
 
   grafana:
-    image: grafana/grafana:latest
+    build:
+      context: .
+      dockerfile: monitoring/grafana/Dockerfile
     container_name: grafana
     restart: unless-stopped
     ports:
       - "3000:3000"
     volumes:
       - grafana-data:/var/lib/grafana
-      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
-      - ./grafana/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=admin
       - GF_USERS_ALLOW_SIGN_UP=false

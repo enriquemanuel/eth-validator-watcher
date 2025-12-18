@@ -56,6 +56,9 @@ grafana-data/
 .env
 .env.local
 
+# Company MITM certificate (contains sensitive data)
+cert.pem
+
 # Build cache
 .cache/
 

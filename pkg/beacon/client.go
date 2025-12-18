@@ -81,13 +81,10 @@ func (c *Client) doRequest(ctx context.Context, method, path string, body interf
 		}
 
 		defer resp.Body.Close()
-		respBody, err := io.ReadAll(resp.Body)
-		if err != nil {
-			lastErr = fmt.Errorf("failed to read response: %w", err)
-			continue
-		}
 
 		if resp.StatusCode >= 400 {
+			// For error responses, read the body for the error message
+			respBody, _ := io.ReadAll(resp.Body)
 			// Provide helpful error messages
 			if resp.StatusCode == 404 {
 				lastErr = fmt.Errorf("endpoint not found (HTTP 404): %s - this beacon node may not support this API endpoint. Response: %s", url, string(respBody))
@@ -102,8 +99,10 @@ func (c *Client) doRequest(ctx context.Context, method, path string, body interf
 		}
 
 		if result != nil {
-			if err := json.Unmarshal(respBody, result); err != nil {
-				return fmt.Errorf("failed to unmarshal response: %w", err)
+			// Use streaming JSON decoder to avoid loading entire response into memory
+			// This is critical for large responses like 2M+ validators (~600MB)
+			if err := json.NewDecoder(resp.Body).Decode(result); err != nil {
+				return fmt.Errorf("failed to decode response: %w", err)
 			}
 		}
 
@@ -175,7 +174,7 @@ func (c *Client) GetValidators(ctx context.Context, stateID string, indices []mo
 	return response.Data, nil
 }
 
-// GetValidatorsByPubkeys retrieves validators by public keys (uses POST)
+// GetValidatorsByPubkeys retrieves validators by public keys (uses POST for large sets)
 func (c *Client) GetValidatorsByPubkeys(ctx context.Context, stateID string, pubkeys []string) ([]models.Validator, error) {
 	requestBody := map[string]interface{}{
 		"ids": pubkeys,
@@ -189,11 +188,12 @@ func (c *Client) GetValidatorsByPubkeys(ctx context.Context, stateID string, pub
 		return nil, fmt.Errorf("failed to get validators by pubkeys: %w", err)
 	}
 
-	c.logger.Infof("Loaded %d validators by pubkeys", len(response.Data))
+	c.logger.Debugf("Batch loaded %d validators", len(response.Data))
 	return response.Data, nil
 }
 
 // GetAllValidators retrieves all validators (for loading the full 2M+ validator set)
+// DEPRECATED: Use StreamAllValidators for memory-efficient processing
 func (c *Client) GetAllValidators(ctx context.Context, stateID string) ([]models.Validator, error) {
 	var response models.ValidatorsResponse
 	path := fmt.Sprintf("/eth/v1/beacon/states/%s/validators", stateID)
@@ -204,6 +204,93 @@ func (c *Client) GetAllValidators(ctx context.Context, stateID string) ([]models
 
 	c.logger.Infof("Loaded %d validators from beacon node", len(response.Data))
 	return response.Data, nil
+}
+
+// ValidatorProcessor is called for each validator during streaming
+// Return false to stop processing
+type ValidatorProcessor func(v *models.Validator) bool
+
+// StreamAllValidators streams validators one at a time, calling the processor for each
+// This is memory-efficient: only one validator is in memory at a time (~500 bytes)
+// Instead of loading all 2M+ validators into a slice (~4GB)
+func (c *Client) StreamAllValidators(ctx context.Context, stateID string, processor ValidatorProcessor) (int, error) {
+	path := fmt.Sprintf("/eth/v1/beacon/states/%s/validators", stateID)
+	url := c.baseURL + path
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return 0, fmt.Errorf("failed to create request: %w", err)
+	}
+	req.Header.Set("Accept", contentTypeJSON)
+
+	// Use a client with no timeout for streaming - context handles cancellation
+	// Streaming 2M+ validators can take 5-10 minutes over remote APIs
+	streamClient := &http.Client{Timeout: 0}
+	resp, err := streamClient.Do(req)
+	if err != nil {
+		return 0, fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		respBody, _ := io.ReadAll(resp.Body)
+		return 0, fmt.Errorf("HTTP %d: %s", resp.StatusCode, string(respBody))
+	}
+
+	// Use streaming JSON decoder
+	decoder := json.NewDecoder(resp.Body)
+
+	// Navigate to "data" array: {"data": [...]}
+	// First token should be '{'
+	if _, err := decoder.Token(); err != nil {
+		return 0, fmt.Errorf("failed to read opening brace: %w", err)
+	}
+
+	// Read tokens until we find "data"
+	for decoder.More() {
+		token, err := decoder.Token()
+		if err != nil {
+			return 0, fmt.Errorf("failed to read token: %w", err)
+		}
+
+		// Look for "data" key
+		if key, ok := token.(string); ok && key == "data" {
+			break
+		}
+
+		// Skip unknown values
+		if _, err := decoder.Token(); err != nil {
+			return 0, fmt.Errorf("failed to skip value: %w", err)
+		}
+	}
+
+	// Next token should be '[' (start of data array)
+	if _, err := decoder.Token(); err != nil {
+		return 0, fmt.Errorf("failed to read array start: %w", err)
+	}
+
+	// Stream each validator
+	count := 0
+	for decoder.More() {
+		var v models.Validator
+		if err := decoder.Decode(&v); err != nil {
+			return count, fmt.Errorf("failed to decode validator %d: %w", count, err)
+		}
+
+		// Process this validator
+		if !processor(&v) {
+			break // Processor requested stop
+		}
+		count++
+
+		// Log progress every 500k validators
+		if count%500000 == 0 {
+			c.logger.Infof("Streamed %d validators...", count)
+		}
+	}
+
+	c.logger.Infof("Streamed %d validators from beacon node", count)
+	return count, nil
 }
 
 // GetProposerDuties retrieves proposer duties for an epoch
@@ -231,15 +318,20 @@ func (c *Client) GetBlock(ctx context.Context, blockID string) (*models.Block, e
 }
 
 // GetAttestations retrieves attestations for a slot
+// Uses the full block endpoint since some providers (QuickNode) don't support /attestations
+// Returns empty slice if block doesn't exist (missed block or not produced yet)
 func (c *Client) GetAttestations(ctx context.Context, slot models.Slot) ([]models.Attestation, error) {
-	var response models.AttestationsResponse
-	path := fmt.Sprintf("/eth/v1/beacon/blocks/%d/attestations", slot)
-
-	if err := c.doRequest(ctx, http.MethodGet, path, nil, &response); err != nil {
+	// Get full block and extract attestations from body
+	block, err := c.GetBlock(ctx, fmt.Sprintf("%d", slot))
+	if err != nil {
+		// Block might not exist (missed or not produced yet) - return empty, not error
+		if strings.Contains(err.Error(), "404") || strings.Contains(err.Error(), "NOT_FOUND") {
+			return []models.Attestation{}, nil
+		}
 		return nil, fmt.Errorf("failed to get attestations: %w", err)
 	}
 
-	return response.Data, nil
+	return block.Message.Body.Attestations, nil
 }
 
 // GetCommittees retrieves committees for a slot

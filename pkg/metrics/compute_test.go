@@ -82,8 +82,8 @@ func TestComputeMetrics(t *testing.T) {
 		t.Errorf("Expected 1 missed block, got %d", watched.MissedBlocks)
 	}
 
-	// Check rewards rate calculation
-	expectedRate := float64(950000+980000) / float64(1000000+1000000)
+	// Check rewards rate calculation (now stored as percentage 0-100, like Python)
+	expectedRate := float64(950000+980000) / float64(1000000+1000000) * 100 // 96.5%
 	if watched.ConsensusRewardsRate != expectedRate {
 		t.Errorf("Expected consensus rewards rate %f, got %f", expectedRate, watched.ConsensusRewardsRate)
 	}

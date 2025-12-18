@@ -1,1 +1,3 @@
 etc/
+# Note: cert.pem is NOT ignored - it's needed for local development
+# If cert.pem doesn't exist, the Dockerfile will skip certificate handling gracefully

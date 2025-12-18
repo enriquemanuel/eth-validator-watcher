@@ -118,12 +118,12 @@ func (c *BeaconClock) WaitUntilSlot(ctx context.Context, slot models.Slot) error
 	return nil
 }
 
-// WaitUntilNextSlot waits until the next slot starts
-func (c *BeaconClock) WaitUntilNextSlot(ctx context.Context) (models.Slot, error) {
-	currentSlot := c.CurrentSlot()
-	nextSlot := currentSlot + 1
+// WaitUntilNextSlot waits until the specified slot ends (including lag time for attestations)
+// and returns the next slot number. This ensures we don't skip slots if processing takes time.
+func (c *BeaconClock) WaitUntilNextSlot(ctx context.Context, processedSlot models.Slot) (models.Slot, error) {
+	nextSlot := processedSlot + 1
 
-	if err := c.WaitUntilSlot(ctx, currentSlot); err != nil {
+	if err := c.WaitUntilSlot(ctx, processedSlot); err != nil {
 		return 0, err
 	}
 

@@ -1,15 +1,4 @@
 {
-  "__inputs": [
-    {
-      "name": "DS_PROMETHEUS",
-      "label": "Prometheus",
-      "description": "",
-      "type": "datasource",
-      "pluginId": "prometheus",
-      "pluginName": "Prometheus"
-    }
-  ],
-  "__elements": {},
   "__requires": [
     {
       "type": "panel",
@@ -134,7 +123,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
+        "uid": "prometheus"
       },
       "description": "Ethereum epoch",
       "fieldConfig": {
@@ -186,7 +175,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
+            "uid": "prometheus"
           },
           "editorMode": "code",
           "exemplar": false,
@@ -204,7 +193,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
+        "uid": "prometheus"
       },
       "description": "Ethereum slot",
       "fieldConfig": {
@@ -258,7 +247,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
+            "uid": "prometheus"
           },
           "editorMode": "code",
           "expr": "max(eth_slot{network=\"${network}\"})",
@@ -274,7 +263,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
+        "uid": "prometheus"
       },
       "description": "",
       "fieldConfig": {
@@ -322,7 +311,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
+            "uid": "prometheus"
           },
           "editorMode": "code",
           "expr": "max(eth_slot{network=\"${network}\"}) % 32",
@@ -337,7 +326,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
+        "uid": "prometheus"
       },
       "fieldConfig": {
         "defaults": {
@@ -387,7 +376,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
+            "uid": "prometheus"
           },
           "editorMode": "code",
           "expr": "max(eth_current_price_dollars{network=\"${network}\"})",
@@ -402,7 +391,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
+        "uid": "prometheus"
       },
       "description": "Estimation of the entry queue time. Add ~12 hours for actual entry time.",
       "fieldConfig": {
@@ -454,7 +443,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
+            "uid": "prometheus"
           },
           "editorMode": "code",
           "expr": "((max(eth_pending_deposits_value{network=\"$network\"}) / 1e9) * (12*32)) / 256",
@@ -482,7 +471,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
+        "uid": "prometheus"
       },
       "description": "",
       "fieldConfig": {
@@ -534,7 +523,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
+            "uid": "prometheus"
           },
           "editorMode": "code",
           "exemplar": false,
@@ -548,7 +537,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
+            "uid": "prometheus"
           },
           "editorMode": "code",
           "expr": "max(eth_validator_status${scale}_count{status=~\"active_ongoing|active_exiting\", scope=\"scope:watched\", network=\"${network}\"} or vector(0))",
@@ -565,7 +554,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
+        "uid": "prometheus"
       },
       "fieldConfig": {
         "defaults": {
@@ -620,7 +609,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
+            "uid": "prometheus"
           },
           "editorMode": "code",
           "expr": "max(eth_validator_status_scaled_count{status=~\"active_ongoing|active_exiting\", scope=\"scope:all-network\", network=\"${network}\"} or vector(0)) * max(eth_current_price_dollars{network=\"${network}\"}) * 32",
@@ -632,7 +621,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
+            "uid": "prometheus"
           },
           "editorMode": "code",
           "expr": "max(eth_validator_status_scaled_count{status=~\"active_ongoing|active_exiting\", scope=\"scope:watched\", network=\"${network}\"} or vector(0)) * max(eth_current_price_dollars{network=\"${network}\"}) * 32",
@@ -649,7 +638,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
+        "uid": "prometheus"
       },
       "description": "",
       "fieldConfig": {
@@ -712,7 +701,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
+            "uid": "prometheus"
           },
           "editorMode": "code",
           "expr": "max(avg_over_time(eth_consensus_rewards_rate{scope=\"scope:all-network\", network=\"${network}\"}[$__interval]))",
@@ -725,7 +714,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
+            "uid": "prometheus"
           },
           "editorMode": "code",
           "expr": "max(avg_over_time(eth_consensus_rewards_rate{scope=\"scope:watched\", network=\"${network}\"}[$__interval]))",
@@ -742,7 +731,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
+        "uid": "prometheus"
       },
       "description": "Block proposals expected from the watched keys within the next 2 epochs. This signal can be used to know when to upgrade/perform operations on your Ethereum validation stack.",
       "fieldConfig": {
@@ -793,7 +782,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
+            "uid": "prometheus"
           },
           "editorMode": "code",
           "expr": "max(increase(eth_missed_block_proposals_finalized_total{scope=\"scope:all-network\", network=\"${network}\"}[$__range]))",
@@ -805,7 +794,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
+            "uid": "prometheus"
           },
           "editorMode": "code",
           "expr": "max(increase(eth_missed_block_proposals_finalized_total{scope=\"scope:watched\", network=\"${network}\"}[$__range]))",
@@ -822,7 +811,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
+        "uid": "prometheus"
       },
       "fieldConfig": {
         "defaults": {
@@ -912,13 +901,13 @@
           "refId": "A",
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
+            "uid": "prometheus"
           }
         },
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
+            "uid": "prometheus"
           },
           "editorMode": "code",
           "expr": "eth_pending_consolidations_count{network=\"$network\"}",
@@ -931,7 +920,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
+            "uid": "prometheus"
           },
           "editorMode": "code",
           "expr": "eth_pending_withdrawals_count{network=\"$network\"}",
@@ -948,7 +937,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
+        "uid": "prometheus"
       },
       "description": "",
       "fieldConfig": {
@@ -1000,7 +989,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
+            "uid": "prometheus"
           },
           "editorMode": "code",
           "exemplar": false,
@@ -1014,7 +1003,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
+            "uid": "prometheus"
           },
           "editorMode": "code",
           "expr": "max(eth_slashed_validators{scope=\"scope:watched\", network=\"${network}\"} or vector(0))",
@@ -1031,7 +1020,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
+        "uid": "prometheus"
       },
       "description": "Block proposals expected from the watched keys within the next 2 epochs. This signal can be used to know when to upgrade/perform operations on your Ethereum validation stack.",
       "fieldConfig": {
@@ -1082,7 +1071,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
+            "uid": "prometheus"
           },
           "editorMode": "code",
           "expr": "max(eth_future_block_proposals{scope=\"scope:all-network\", network=\"${network}\"})",
@@ -1094,7 +1083,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
+            "uid": "prometheus"
           },
           "editorMode": "code",
           "expr": "max(eth_future_block_proposals{scope=\"scope:watched\", network=\"${network}\"})",
@@ -1111,7 +1100,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
+        "uid": "prometheus"
       },
       "description": "",
       "fieldConfig": {
@@ -1167,7 +1156,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
+            "uid": "prometheus"
           },
           "editorMode": "code",
           "expr": "((max(eth_validator_status_scaled_count{status=~\"active_ongoing|active_exiting\", scope=\"scope:all-network\", network=\"${network}\"}) or vector(0)) / (max(eth_validator_status_scaled_count{status=~\"active_ongoing|active_exiting\", scope=\"scope:all-network\", network=\"${network}\"}) or vector(0))) * 100.0",
@@ -1179,7 +1168,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
+            "uid": "prometheus"
           },
           "editorMode": "code",
           "expr": "((max(eth_validator_status_scaled_count{status=~\"active_ongoing|active_exiting\", scope=\"scope:watched\", network=\"${network}\"}) or vector(0)) / (max(eth_validator_status_scaled_count{status=~\"active_ongoing|active_exiting\", scope=\"scope:all-network\", network=\"${network}\"}) or vector(0))) * 100.0",
@@ -1196,7 +1185,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
+        "uid": "prometheus"
       },
       "fieldConfig": {
         "defaults": {
@@ -1256,7 +1245,7 @@
           "refId": "A",
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
+            "uid": "prometheus"
           }
         }
       ],
@@ -1266,7 +1255,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
+        "uid": "prometheus"
       },
       "fieldConfig": {
         "defaults": {
@@ -1326,7 +1315,7 @@
           "refId": "A",
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
+            "uid": "prometheus"
           }
         }
       ],
@@ -1336,7 +1325,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
+        "uid": "prometheus"
       },
       "description": "",
       "fieldConfig": {
@@ -1388,7 +1377,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
+            "uid": "prometheus"
           },
           "editorMode": "code",
           "exemplar": false,
@@ -1406,7 +1395,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
+        "uid": "prometheus"
       },
       "description": "",
       "fieldConfig": {
@@ -1457,7 +1446,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
+            "uid": "prometheus"
           },
           "editorMode": "code",
           "expr": "max(increase(eth_block_proposals_finalized_total{scope=\"scope:all-network\", network=\"${network}\"}[$__range]))",
@@ -1469,7 +1458,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
+            "uid": "prometheus"
           },
           "editorMode": "code",
           "expr": "max(increase(eth_block_proposals_finalized_total{scope=\"scope:watched\", network=\"${network}\"}[$__range]))",
@@ -1499,7 +1488,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
+        "uid": "prometheus"
       },
       "description": "",
       "fieldConfig": {
@@ -1591,7 +1580,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
+            "uid": "prometheus"
           },
           "editorMode": "code",
           "expr": "max(eth_duties_rate${scale}{scope=\"scope:network\", network=\"${network}\"}) * 100.0",
@@ -1603,7 +1592,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
+            "uid": "prometheus"
           },
           "editorMode": "code",
           "expr": "max(eth_duties_rate${scale}{scope=\"scope:watched\", network=\"${network}\"}) * 100.0",
@@ -1620,7 +1609,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
+        "uid": "prometheus"
       },
       "description": "",
       "fieldConfig": {
@@ -1709,7 +1698,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
+            "uid": "prometheus"
           },
           "editorMode": "code",
           "expr": "max(increase(eth_missed_block_proposals_finalized_total{scope=\"scope:network\", network=\"${network}\"}[24h]))",
@@ -1721,7 +1710,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
+            "uid": "prometheus"
           },
           "editorMode": "code",
           "exemplar": false,
@@ -1739,7 +1728,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
+        "uid": "prometheus"
       },
       "fieldConfig": {
         "defaults": {
@@ -1827,7 +1816,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
+            "uid": "prometheus"
           },
           "editorMode": "code",
           "expr": "max(eth_suboptimal_sources_rate{scope=\"scope:network\", network=\"${network}\"})",
@@ -1839,7 +1828,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
+            "uid": "prometheus"
           },
           "editorMode": "code",
           "expr": "max(eth_suboptimal_sources_rate{scope=\"scope:watched\", network=\"${network}\"})",
@@ -1856,7 +1845,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
+        "uid": "prometheus"
       },
       "fieldConfig": {
         "defaults": {
@@ -1944,7 +1933,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
+            "uid": "prometheus"
           },
           "editorMode": "code",
           "expr": "max(eth_suboptimal_targets_rate{scope=\"scope:network\", network=\"${network}\"})",
@@ -1956,7 +1945,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
+            "uid": "prometheus"
           },
           "editorMode": "code",
           "expr": "max(eth_suboptimal_targets_rate{scope=\"scope:watched\", network=\"${network}\"})",
@@ -1973,7 +1962,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
+        "uid": "prometheus"
       },
       "description": "",
       "fieldConfig": {
@@ -2062,7 +2051,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
+            "uid": "prometheus"
           },
           "editorMode": "code",
           "expr": "max(eth_missed_attestations${scale}{scope=\"scope:network\", network=\"${network}\"})",
@@ -2074,7 +2063,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
+            "uid": "prometheus"
           },
           "editorMode": "code",
           "expr": "max(eth_missed_attestations${scale}{scope=\"scope:watched\", network=\"${network}\"})",
@@ -2091,7 +2080,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
+        "uid": "prometheus"
       },
       "description": "",
       "fieldConfig": {
@@ -2180,7 +2169,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
+            "uid": "prometheus"
           },
           "editorMode": "code",
           "expr": "max(eth_missed_consecutive_attestations${scale}{scope=\"scope:network\", network=\"${network}\"})",
@@ -2192,7 +2181,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
+            "uid": "prometheus"
           },
           "editorMode": "code",
           "expr": "max(eth_missed_consecutive_attestations${scale}{scope=\"scope:watched\", network=\"${network}\"})",
@@ -2209,7 +2198,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
+        "uid": "prometheus"
       },
       "description": "",
       "fieldConfig": {
@@ -2298,7 +2287,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
+            "uid": "prometheus"
           },
           "editorMode": "code",
           "expr": "max(eth_suboptimal_heads_rate{scope=\"scope:network\", network=\"${network}\"})",
@@ -2310,7 +2299,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
+            "uid": "prometheus"
           },
           "editorMode": "code",
           "expr": "max(eth_suboptimal_heads_rate{scope=\"scope:watched\", network=\"${network}\"})",
@@ -2334,7 +2323,7 @@
         "current": {},
         "datasource": {
           "type": "prometheus",
-          "uid": "${DS_PROMETHEUS}"
+          "uid": "prometheus"
         },
         "definition": "label_values(eth_future_block_proposals,network)",
         "includeAll": false,

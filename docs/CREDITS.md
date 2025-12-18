@@ -18,7 +18,7 @@ The original implementation provided:
 
 ## Go Refactor
 
-The Go implementation was developed by **Enrique Manuel Valenzuela** in 2025.
+The Go implementation was developed by **Enrique Valenzuela** in 2025.
 
 - **Repository**: https://github.com/enriquemanuel/eth-validator-watcher
 - **Language**: Go (Golang)
@@ -64,9 +64,7 @@ Both implementations are released under the MIT License, allowing free use, modi
 
 This project demonstrates the power of open-source collaboration:
 - **Kiln** provided the foundational design and Python implementation
-- **Enrique Manuel Valenzuela** brought performance improvements through Go
-
-Special thanks to the Ethereum community for tools and documentation that make projects like this possible.
+- **Enrique Valenzuela** brought performance improvements through Go
 
 ## Contact
 
