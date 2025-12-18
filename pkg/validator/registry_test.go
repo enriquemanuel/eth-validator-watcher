@@ -184,8 +184,8 @@ func TestWatchedValidatorsUpdate(t *testing.T) {
 		t.Fatal("Expected to find validator 100")
 	}
 
-	// Check labels include scope labels
-	expectedLabels := []string{"scope:all-network", "scope:watched", "vc:val1", "region:us"}
+	// Check labels include scope labels and auto-generated key label
+	expectedLabels := []string{"scope:all-network", "scope:watched", "key:0xabc123", "vc:val1", "region:us"}
 	if len(v.Labels) != len(expectedLabels) {
 		t.Errorf("Expected %d labels, got %d", len(expectedLabels), len(v.Labels))
 	}

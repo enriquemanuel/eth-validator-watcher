@@ -86,6 +86,14 @@ type MetricsByLabel struct {
 	MaxConsecutiveMissed       uint64  // Max consecutive missed
 	MaxConsecutiveMissedStake  float64 // Stake-weighted max consecutive missed
 
+	// Sync committee tracking
+	SyncCommitteeCount      int               // Validators in sync committee
+	SyncCommitteeDuties     uint64            // Total sync committee slots assigned
+	SyncCommitteeSuccess    uint64            // Sync committee slots participated
+	SyncCommitteeMissed     uint64            // Sync committee slots missed
+	SyncCommitteeRewards    models.SignedGwei // Total sync committee rewards
+	SyncCommitteeSuccessRate float64          // Success rate (0-100)
+
 	// Details for logging (limited to 5)
 	MissedAttestationDetails []ValidatorDetail
 	SuboptimalSourceDetails  []ValidatorDetail
@@ -244,6 +252,15 @@ func ComputeMetrics(validators []*validator.WatchedValidator, slot models.Slot) 
 							Value:  v.MissedBlocks,
 						})
 					}
+
+					// Sync committee tracking
+					if v.InSyncCommittee {
+						metrics.SyncCommitteeCount++
+					}
+					metrics.SyncCommitteeDuties += v.SyncCommitteeDuties
+					metrics.SyncCommitteeSuccess += v.SyncCommitteeSuccess
+					metrics.SyncCommitteeMissed += v.SyncCommitteeMissed
+					metrics.SyncCommitteeRewards += v.SyncCommitteeRewards
 				}
 			}
 
@@ -360,6 +377,10 @@ func ComputeMetrics(validators []*validator.WatchedValidator, slot models.Slot) 
 		}
 		if metrics.AttestationDuties > 0 {
 			metrics.AttestationDutiesRate = float64(metrics.AttestationDutiesSuccess) / float64(metrics.AttestationDuties)
+		}
+		// Sync committee success rate (percentage 0-100)
+		if metrics.SyncCommitteeDuties > 0 {
+			metrics.SyncCommitteeSuccessRate = float64(metrics.SyncCommitteeSuccess) / float64(metrics.SyncCommitteeDuties) * 100.0
 		}
 	}
 

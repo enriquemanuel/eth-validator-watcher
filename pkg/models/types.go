@@ -283,3 +283,37 @@ type WatchedKey struct {
 	PublicKey string   `yaml:"public_key"`
 	Labels    []string `yaml:"labels,omitempty"`
 }
+
+// SyncCommitteeDuty represents a sync committee duty for a validator
+type SyncCommitteeDuty struct {
+	Pubkey                        string           `json:"pubkey"`
+	ValidatorIndex                ValidatorIndex   `json:"validator_index,string"`
+	ValidatorSyncCommitteeIndices []string         `json:"validator_sync_committee_indices"`
+}
+
+// SyncCommitteeDutiesResponse represents the API response for sync committee duties
+type SyncCommitteeDutiesResponse struct {
+	Data []SyncCommitteeDuty `json:"data"`
+}
+
+// SyncCommitteeReward represents the sync committee reward for a validator
+type SyncCommitteeReward struct {
+	ValidatorIndex ValidatorIndex `json:"validator_index,string"`
+	Reward         SignedGwei     `json:"reward,string"`
+}
+
+// SyncCommitteeRewardsResponse represents the API response for sync committee rewards
+type SyncCommitteeRewardsResponse struct {
+	Data []SyncCommitteeReward `json:"data"`
+}
+
+// SyncCommittee represents the sync committee composition
+type SyncCommittee struct {
+	Validators          []string `json:"validators"`
+	ValidatorAggregates []string `json:"validator_aggregates"`
+}
+
+// SyncCommitteeResponse represents the API response for sync committee
+type SyncCommitteeResponse struct {
+	Data SyncCommittee `json:"data"`
+}

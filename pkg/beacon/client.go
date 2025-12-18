@@ -435,3 +435,59 @@ func (c *Client) GetPendingWithdrawals(ctx context.Context, stateID string) ([]m
 
 	return response.Data, nil
 }
+
+// GetSyncCommitteeDuties retrieves sync committee duties for validators in an epoch
+// POST /eth/v1/validator/duties/sync/{epoch}
+func (c *Client) GetSyncCommitteeDuties(ctx context.Context, epoch models.Epoch, validatorIndices []models.ValidatorIndex) ([]models.SyncCommitteeDuty, error) {
+	var response models.SyncCommitteeDutiesResponse
+	path := fmt.Sprintf("/eth/v1/validator/duties/sync/%d", epoch)
+
+	// Convert indices to strings for the request body
+	indices := make([]string, len(validatorIndices))
+	for i, idx := range validatorIndices {
+		indices[i] = fmt.Sprintf("%d", idx)
+	}
+
+	if err := c.doRequest(ctx, http.MethodPost, path, indices, &response); err != nil {
+		return nil, fmt.Errorf("failed to get sync committee duties: %w", err)
+	}
+
+	return response.Data, nil
+}
+
+// GetSyncCommitteeRewards retrieves sync committee rewards for a block
+// POST /eth/v1/beacon/rewards/sync_committee/{block_id}
+func (c *Client) GetSyncCommitteeRewards(ctx context.Context, blockID string, validatorIndices []models.ValidatorIndex) ([]models.SyncCommitteeReward, error) {
+	var response models.SyncCommitteeRewardsResponse
+	path := fmt.Sprintf("/eth/v1/beacon/rewards/sync_committee/%s", blockID)
+
+	// Convert indices to strings for the request body
+	indices := make([]string, len(validatorIndices))
+	for i, idx := range validatorIndices {
+		indices[i] = fmt.Sprintf("%d", idx)
+	}
+
+	if err := c.doRequest(ctx, http.MethodPost, path, indices, &response); err != nil {
+		// Not all beacon nodes support this endpoint or block may not exist
+		c.logger.Debugf("Failed to get sync committee rewards for block %s: %v", blockID, err)
+		return nil, err
+	}
+
+	return response.Data, nil
+}
+
+// GetSyncCommittee retrieves the sync committee for a state
+// GET /eth/v1/beacon/states/{state_id}/sync_committees
+func (c *Client) GetSyncCommittee(ctx context.Context, stateID string, epoch *models.Epoch) (*models.SyncCommittee, error) {
+	var response models.SyncCommitteeResponse
+	path := fmt.Sprintf("/eth/v1/beacon/states/%s/sync_committees", stateID)
+	if epoch != nil {
+		path = fmt.Sprintf("%s?epoch=%d", path, *epoch)
+	}
+
+	if err := c.doRequest(ctx, http.MethodGet, path, nil, &response); err != nil {
+		return nil, fmt.Errorf("failed to get sync committee: %w", err)
+	}
+
+	return &response.Data, nil
+}

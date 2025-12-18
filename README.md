@@ -69,6 +69,7 @@ curl http://localhost:8080/metrics  # Prometheus metrics
 
 - **Real-time Monitoring**: Slot-by-slot processing of all validators
 - **Performance Metrics**: Attestation success rate, consensus rewards, block proposals
+- **Sync Committee Tracking**: Monitor sync committee participation and rewards
 - **Label-based Organization**: Group validators by operator, region, client, etc.
 - **Prometheus Export**: Industry-standard metrics format
 - **Concurrent Processing**: Parallel metrics computation across CPU cores
@@ -146,13 +147,22 @@ Example: `performance_rate=99.95%, miss_rate=0.00%`
 - `eth_validator_watcher_ideal_consensus_rewards_gwei{label}` - Maximum possible
 - `eth_validator_watcher_consensus_rewards_gwei{label}` - Actual earned
 
+**Sync Committee:**
+- `eth_sync_committee_validators{label}` - Validators in sync committee
+- `eth_sync_committee_success_total{label}` - Successful participations
+- `eth_sync_committee_missed_total{label}` - Missed participations
+- `eth_sync_committee_rewards_gwei{label}` - Sync committee rewards
+- `eth_sync_committee_success_rate{label}` - Success rate (0-100%)
+
 ### Labels
 
 Every metric has a `label` dimension for grouping:
 
 **Default labels:**
 - `scope:all-network` - All 2M+ Ethereum validators
+- `scope:network` - Network validators excluding your watched validators (for comparison)
 - `scope:watched` - Your watched validators only
+- `key:0x...` - Auto-generated per-validator label (first 12 chars of pubkey)
 
 **Custom labels** (from your config):
 - `operator:name` - Group by operator/infrastructure
@@ -179,6 +189,12 @@ increase(eth_validator_watcher_proposed_blocks{label=~"operator:.*"}[24h])
 # Compare your performance vs network
 eth_validator_watcher_consensus_rewards_rate{label="scope:watched"} /
 eth_validator_watcher_consensus_rewards_rate{label="scope:all-network"}
+
+# Sync committee participation rate
+eth_sync_committee_success_rate{label="scope:watched"}
+
+# Validators in sync committee by operator
+eth_sync_committee_validators{label=~"operator:.*"}
 ```
 
 ## Kubernetes Deployment

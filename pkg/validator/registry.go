@@ -41,6 +41,13 @@ type WatchedValidator struct {
 	SuboptimalTargetThisEpoch bool // Whether validator had suboptimal target this epoch
 	SuboptimalHeadThisEpoch   bool // Whether validator had suboptimal head this epoch
 	HasRewardsData            bool // Whether validator has rewards data for current epoch
+
+	// Sync committee tracking
+	InSyncCommittee         bool               // Whether validator is in current sync committee
+	SyncCommitteeDuties     uint64             // Total sync committee slots assigned
+	SyncCommitteeSuccess    uint64             // Sync committee slots where validator participated
+	SyncCommitteeMissed     uint64             // Sync committee slots where validator missed
+	SyncCommitteeRewards    models.SignedGwei  // Total sync committee rewards (can be negative for penalties)
 }
 
 // ValidatorType represents the withdrawal credential type
@@ -383,8 +390,14 @@ func (wv *WatchedValidators) Update(validators []models.Validator, config []mode
 		weight := float64(v.Data.EffectiveBalance) / 32_000_000_000.0
 
 		// Build labels (always include scope labels)
-		labels := make([]string, 0, 3+len(cfg.Labels))
-		labels = append(labels, "scope:all-network", "scope:watched")
+		// Python auto-generates key:<pubkey_prefix> for each validator
+		keyPrefix := v.Data.Pubkey
+		if len(keyPrefix) > 12 {
+			keyPrefix = keyPrefix[:12] // e.g., "0x8001e3eff1"
+		}
+		keyLabel := "key:" + keyPrefix
+		labels := make([]string, 0, 4+len(cfg.Labels))
+		labels = append(labels, "scope:all-network", "scope:watched", keyLabel)
 		labels = append(labels, cfg.Labels...)
 
 		watched := &WatchedValidator{

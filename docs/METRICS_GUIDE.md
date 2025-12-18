@@ -87,6 +87,16 @@ eth_validator_watcher_missed_attestations{label="key:0x88b3be1f4f"}
 - `eth_validator_watcher_ideal_consensus_rewards_gwei` - Ideal consensus rewards
 - `eth_validator_watcher_consensus_rewards_rate` - Actual/Ideal ratio (0.0 to 1.0)
 
+### Sync Committee
+- `eth_sync_committee_validators` - Number of validators currently in sync committee
+- `eth_sync_committee_duties_total` - Total sync committee slots assigned
+- `eth_sync_committee_success_total` - Successful sync committee participations
+- `eth_sync_committee_missed_total` - Missed sync committee participations
+- `eth_sync_committee_rewards_gwei` - Total sync committee rewards in Gwei
+- `eth_sync_committee_success_rate` - Sync committee success rate (0-100%)
+
+**Note:** Sync committees rotate every 256 epochs (~27 hours). Only 512 validators are in a sync committee at any time. Being selected is relatively rare for small validator sets.
+
 ### Validator Status
 - `eth_validator_watcher_status_count` - Count by status
 - `eth_validator_watcher_status_stake` - Stake by status
@@ -133,6 +143,21 @@ eth_validator_watcher_stake_count{label="operator:lido1"} * 32
 **Validators at risk (consecutive missed attestations):**
 ```promql
 eth_validator_watcher_consecutive_missed_attestations > 2
+```
+
+**Sync committee participation rate:**
+```promql
+eth_sync_committee_success_rate{label="scope:watched"}
+```
+
+**Validators in sync committee by operator:**
+```promql
+eth_sync_committee_validators{label=~"operator:.*"}
+```
+
+**Sync committee rewards earned:**
+```promql
+eth_sync_committee_rewards_gwei{label="scope:watched"}
 ```
 
 ## Access Metrics
