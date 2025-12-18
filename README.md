@@ -124,47 +124,46 @@ Example: `performance_rate=99.95%, miss_rate=0.00%`
 ### Key Metrics
 
 **Validator Counts:**
-- `eth_validator_watcher_validator_count{label}` - Total validators
-- `eth_validator_watcher_status_count{label,status}` - By status (active/exited/pending)
+- `eth_validator_status_count{scope,status,network}` - By status (active/exited/pending)
+- `eth_validator_status_scaled_count{scope,status,network}` - Stake by status (32 ETH units)
 
 **Performance:**
-- `eth_validator_watcher_consensus_rewards_rate{label}` - Performance rate (0-1.0)
-- `eth_validator_watcher_missed_attestations{label}` - Missed attestations count
-- `eth_validator_watcher_attestation_duties{label}` - Total duties assigned
-- `eth_validator_watcher_attestation_duties_success{label}` - Successful attestations
+- `eth_consensus_rewards_rate{scope,network}` - Performance rate (0-100%)
+- `eth_missed_attestations{scope,network}` - Missed attestations count
+- `eth_duties_rate{scope,network}` - Attestation success rate (0-100%)
 
 **Suboptimal Votes (reduce rewards but not "misses"):**
-- `eth_validator_watcher_suboptimal_head_votes{label}` - Wrong head block
-- `eth_validator_watcher_suboptimal_source_votes{label}` - Wrong source checkpoint
-- `eth_validator_watcher_suboptimal_target_votes{label}` - Wrong target checkpoint
+- `eth_suboptimal_heads_rate{scope,network}` - Wrong head block rate
+- `eth_suboptimal_sources_rate{scope,network}` - Wrong source checkpoint rate
+- `eth_suboptimal_targets_rate{scope,network}` - Wrong target checkpoint rate
 
 **Block Proposals:**
-- `eth_validator_watcher_proposed_blocks{label}` - Blocks proposed
-- `eth_validator_watcher_proposed_blocks_finalized{label}` - Finalized proposals
-- `eth_validator_watcher_missed_blocks{label}` - Missed proposals
+- `eth_block_proposals_head_total{scope,network}` - Blocks proposed (counter)
+- `eth_block_proposals_finalized_total{scope,network}` - Finalized proposals (counter)
+- `eth_missed_block_proposals_head_total{scope,network}` - Missed proposals (counter)
+- `eth_future_block_proposals{scope,network}` - Upcoming proposals
 
 **Rewards:**
-- `eth_validator_watcher_ideal_consensus_rewards_gwei{label}` - Maximum possible
-- `eth_validator_watcher_consensus_rewards_gwei{label}` - Actual earned
+- `eth_ideal_consensus_rewards_gwei{scope,network}` - Maximum possible
+- `eth_actual_consensus_rewards_gwei{scope,network}` - Actual earned
 
-**Sync Committee:**
-- `eth_sync_committee_validators{label}` - Validators in sync committee
-- `eth_sync_committee_success_total{label}` - Successful participations
-- `eth_sync_committee_missed_total{label}` - Missed participations
-- `eth_sync_committee_rewards_gwei{label}` - Sync committee rewards
-- `eth_sync_committee_success_rate{label}` - Success rate (0-100%)
+**Network:**
+- `eth_current_price_dollars{network}` - ETH price in USD
+- `eth_pending_deposits_count{network}` - Pending deposits
+- `eth_pending_consolidations_count{network}` - Pending consolidations
+- `eth_pending_withdrawals_count{network}` - Pending withdrawals
 
-### Labels
+### Scopes
 
-Every metric has a `label` dimension for grouping:
+Every metric has a `scope` dimension for grouping:
 
-**Default labels:**
+**Default scopes:**
 - `scope:all-network` - All 2M+ Ethereum validators
 - `scope:network` - Network validators excluding your watched validators (for comparison)
 - `scope:watched` - Your watched validators only
-- `key:0x...` - Auto-generated per-validator label (first 12 chars of pubkey)
+- `key:0x...` - Auto-generated per-validator scope (first 12 chars of pubkey)
 
-**Custom labels** (from your config):
+**Custom scopes** (from your config labels):
 - `operator:name` - Group by operator/infrastructure
 - `region:location` - Geographic grouping
 - `client:software` - Consensus client type
@@ -174,27 +173,23 @@ Every metric has a `label` dimension for grouping:
 
 ```promql
 # Performance rate by operator
-eth_validator_watcher_consensus_rewards_rate{label=~"operator:.*"} * 100
+eth_consensus_rewards_rate{scope=~"operator:.*"}
 
-# Miss rate by operator
-(eth_validator_watcher_missed_attestations{label=~"operator:.*"} /
- eth_validator_watcher_attestation_duties{label=~"operator:.*"}) * 100
+# Missed attestations by operator
+eth_missed_attestations{scope=~"operator:.*"}
 
 # Active validators by operator
-eth_validator_watcher_status_count{label=~"operator:.*", status="active_ongoing"}
+eth_validator_status_count{scope=~"operator:.*", status="active_ongoing"}
 
 # Block proposals in last 24h
-increase(eth_validator_watcher_proposed_blocks{label=~"operator:.*"}[24h])
+increase(eth_block_proposals_head_total{scope=~"operator:.*"}[24h])
 
 # Compare your performance vs network
-eth_validator_watcher_consensus_rewards_rate{label="scope:watched"} /
-eth_validator_watcher_consensus_rewards_rate{label="scope:all-network"}
+eth_consensus_rewards_rate{scope="scope:watched"} /
+eth_consensus_rewards_rate{scope="scope:all-network"}
 
-# Sync committee participation rate
-eth_sync_committee_success_rate{label="scope:watched"}
-
-# Validators in sync committee by operator
-eth_sync_committee_validators{label=~"operator:.*"}
+# ETH price
+eth_current_price_dollars{network="mainnet"}
 ```
 
 ## Kubernetes Deployment
@@ -315,7 +310,7 @@ A: At DEBUG level only. Exited validators show `active_validators=0` and don't a
 A: Use `/health` or `/ready` for health checks. The `/metrics` endpoint is comprehensive and may take longer with many validators.
 
 **Q: Block proposals not showing in metrics?**
-A: Check `eth_validator_watcher_proposed_blocks{label="operator:..."}`. Block proposals are rare events (depends on validator count).
+A: Check `eth_block_proposals_head_total{scope="operator:..."}`. Block proposals are rare events (depends on validator count).
 
 **Q: Can I disable loading all validators?**
 A: Yes! Set `load_all_validators: false` in config. Faster startup but loses network comparison.

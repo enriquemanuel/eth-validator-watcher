@@ -4,10 +4,10 @@
 
 ### Stake Metrics
 
-The `eth_validator_watcher_status_stake` metric shows stake in **units of 32 ETH**:
+The `eth_validator_status_scaled_count` metric shows stake in **units of 32 ETH**:
 
 ```
-eth_validator_watcher_status_stake{label="operator:lido1",status="active_ongoing"} 1000
+eth_validator_status_scaled_count{scope="operator:lido1",status="active_ongoing",network="mainnet"} 1000
 ```
 
 This means:
@@ -30,77 +30,42 @@ Each validator can have multiple labels, and metrics are created for EACH label 
 **Your Config:**
 ```yaml
 - public_key: '0x88b3be1f4f...'
-  labels: ["operator:lido1", "name:Lido1", "key:0x88b3be1f4f"]
+  labels: ["operator:lido1", "name:Lido1"]
 ```
 
-**Results in 5 Metric Series:**
+**Results in metric series for each scope:**
 ```
-eth_validator_watcher_status_stake{label="operator:lido1",status="active_ongoing"} 1000
-eth_validator_watcher_status_stake{label="name:Lido1",status="active_ongoing"} 1000
-eth_validator_watcher_status_stake{label="key:0x88b3be1f4f",status="active_ongoing"} 1
-eth_validator_watcher_status_stake{label="scope:watched",status="active_ongoing"} 22752
-eth_validator_watcher_status_stake{label="scope:all-network",status="active_ongoing"} 2130801
+eth_validator_status_count{scope="operator:lido1",status="active_ongoing",network="mainnet"} 1000
+eth_validator_status_count{scope="name:Lido1",status="active_ongoing",network="mainnet"} 1000
+eth_validator_status_count{scope="scope:watched",status="active_ongoing",network="mainnet"} 22752
+eth_validator_status_count{scope="scope:all-network",status="active_ongoing",network="mainnet"} 2130801
 ```
 
-This allows you to query by ANY label:
+This allows you to query by ANY scope:
 - `operator:lido1` - All Lido validators
 - `name:Lido1` - Specific Lido instance
-- `key:0x88b3be1f4f` - Individual validator
+- `key:0x88b3be1f4f` - Individual validator (auto-generated)
 - `scope:watched` - All your watched validators
+- `scope:network` - Network excluding your watched validators
 - `scope:all-network` - Entire Ethereum network
-
-### Querying Metrics
-
-**See all validators for an operator:**
-```promql
-sum(eth_validator_watcher_status_stake{label="operator:lido1"})
-```
-
-**Compare your validators vs network:**
-```promql
-eth_validator_watcher_consensus_rewards_rate{label="scope:watched"}
-  vs
-eth_validator_watcher_consensus_rewards_rate{label="scope:all-network"}
-```
-
-**Individual validator performance:**
-```promql
-eth_validator_watcher_missed_attestations{label="key:0x88b3be1f4f"}
-```
 
 ## Key Metrics
 
-### Attestation Performance
-- `eth_validator_watcher_missed_attestations` - Count of missed attestations
-- `eth_validator_watcher_attestation_duties_rate` - Success rate (0.0 to 1.0)
-- `eth_validator_watcher_suboptimal_source_votes` - Suboptimal source votes
-- `eth_validator_watcher_suboptimal_target_votes` - Suboptimal target votes
-- `eth_validator_watcher_suboptimal_head_votes` - Suboptimal head votes
-
-### Block Proposals
-- `eth_validator_watcher_proposed_blocks` - Successfully proposed blocks
-- `eth_validator_watcher_missed_blocks` - Missed block proposals
-- `eth_validator_watcher_future_block_proposals` - Upcoming proposals
-
-### Rewards
-- `eth_validator_watcher_consensus_rewards_gwei` - Actual consensus rewards
-- `eth_validator_watcher_ideal_consensus_rewards_gwei` - Ideal consensus rewards
-- `eth_validator_watcher_consensus_rewards_rate` - Actual/Ideal ratio (0.0 to 1.0)
-
-### Sync Committee
-- `eth_sync_committee_validators` - Number of validators currently in sync committee
-- `eth_sync_committee_duties_total` - Total sync committee slots assigned
-- `eth_sync_committee_success_total` - Successful sync committee participations
-- `eth_sync_committee_missed_total` - Missed sync committee participations
-- `eth_sync_committee_rewards_gwei` - Total sync committee rewards in Gwei
-- `eth_sync_committee_success_rate` - Sync committee success rate (0-100%)
-
-**Note:** Sync committees rotate every 256 epochs (~27 hours). Only 512 validators are in a sync committee at any time. Being selected is relatively rare for small validator sets.
+### Network Metrics
+- `eth_slot{network}` - Current slot number
+- `eth_epoch{network}` - Current epoch number
+- `eth_current_price_dollars{network}` - Current ETH price in USD
+- `eth_pending_deposits_count{network}` - Pending deposit count
+- `eth_pending_deposits_value{network}` - Pending deposit value in Gwei
+- `eth_pending_consolidations_count{network}` - Pending consolidation count
+- `eth_pending_withdrawals_count{network}` - Pending withdrawal count
 
 ### Validator Status
-- `eth_validator_watcher_status_count` - Count by status
-- `eth_validator_watcher_status_stake` - Stake by status
-- `eth_validator_watcher_validator_count` - Total validators per label
+- `eth_validator_status_count{scope,status,network}` - Count by status
+- `eth_validator_status_scaled_count{scope,status,network}` - Stake by status (32 ETH units)
+- `eth_validator_type_count{scope,type,network}` - Count by withdrawal credential type
+- `eth_validator_type_scaled_count{scope,type,network}` - Stake by type
+- `eth_slashed_validators{scope,network}` - Slashed validator count
 
 **Status Values:**
 - `active_ongoing` - Active and attesting
@@ -111,53 +76,79 @@ eth_validator_watcher_missed_attestations{label="key:0x88b3be1f4f"}
 - `exited_slashed` - Slashed and exited
 - `withdrawal_done` - Fully withdrawn
 
-## Current Status
+**Type Values:**
+- `0x00` - BLS withdrawal credentials
+- `0x01` - Execution withdrawal credentials
+- `0x02` - Compounding withdrawal credentials
 
-**Loaded:**
-- ✅ **2,130,801** total validators (full Ethereum network)
-- ✅ **22,752** watched validators (from your config)
+### Attestation Performance
+- `eth_missed_attestations{scope,network}` - Count of missed attestations
+- `eth_missed_attestations_scaled{scope,network}` - Stake-weighted missed attestations
+- `eth_suboptimal_sources_rate{scope,network}` - Rate of suboptimal source votes (0-1)
+- `eth_suboptimal_targets_rate{scope,network}` - Rate of suboptimal target votes (0-1)
+- `eth_suboptimal_heads_rate{scope,network}` - Rate of suboptimal head votes (0-1)
+- `eth_duties_rate{scope,network}` - Attestation success rate (0-100%)
+- `eth_duties_rate_scaled{scope,network}` - Stake-weighted success rate
 
-**Note:** 22,752 found out of 45,803 configured keys. The difference may be due to:
-- Validators not yet activated
-- Invalid/duplicate public keys in config
-- Exited validators
+### Duty Tracking (per slot)
+- `eth_performed_duties_at_slot{scope,network}` - Successful duties in current slot
+- `eth_missed_duties_at_slot{scope,network}` - Missed duties in current slot
+- `eth_performed_duties_at_slot_scaled{scope,network}` - Stake-weighted successful
+- `eth_missed_duties_at_slot_scaled{scope,network}` - Stake-weighted missed
+- `eth_missed_consecutive_attestations{scope,network}` - Max consecutive missed
+
+### Block Proposals
+- `eth_block_proposals_head_total{scope,network}` - Total proposed blocks (counter)
+- `eth_missed_block_proposals_head_total{scope,network}` - Total missed blocks (counter)
+- `eth_block_proposals_finalized_total{scope,network}` - Finalized proposals (counter)
+- `eth_missed_block_proposals_finalized_total{scope,network}` - Finalized missed (counter)
+- `eth_future_block_proposals{scope,network}` - Upcoming proposals in next 2 epochs
+
+### Rewards
+- `eth_ideal_consensus_rewards_gwei{scope,network}` - Maximum possible rewards
+- `eth_actual_consensus_rewards_gwei{scope,network}` - Actual earned rewards
+- `eth_consensus_rewards_rate{scope,network}` - Reward rate (0-100%)
 
 ## Example Queries
 
-**Validator uptime:**
+**Validator count by operator:**
 ```promql
-eth_validator_watcher_attestation_duties_rate{label="operator:lido1"} * 100
+eth_validator_status_count{scope=~"operator:.*",status="active_ongoing"}
 ```
 
 **Total stake managed:**
 ```promql
-eth_validator_watcher_stake_count{label="operator:lido1"} * 32
+eth_validator_status_scaled_count{scope="operator:lido1",status="active_ongoing"} * 32
 ```
 
-**Performance vs network:**
+**Performance rate:**
 ```promql
-(eth_validator_watcher_consensus_rewards_rate{label="scope:watched"} /
- eth_validator_watcher_consensus_rewards_rate{label="scope:all-network"}) * 100
+eth_consensus_rewards_rate{scope="scope:watched"}
 ```
 
-**Validators at risk (consecutive missed attestations):**
+**Compare your performance vs network:**
 ```promql
-eth_validator_watcher_consecutive_missed_attestations > 2
+eth_consensus_rewards_rate{scope="scope:watched"} / eth_consensus_rewards_rate{scope="scope:all-network"}
 ```
 
-**Sync committee participation rate:**
+**Missed attestations by operator:**
 ```promql
-eth_sync_committee_success_rate{label="scope:watched"}
+eth_missed_attestations{scope=~"operator:.*"}
 ```
 
-**Validators in sync committee by operator:**
+**Block proposals in last 24h:**
 ```promql
-eth_sync_committee_validators{label=~"operator:.*"}
+increase(eth_block_proposals_head_total{scope=~"operator:.*"}[24h])
 ```
 
-**Sync committee rewards earned:**
+**Validators at risk (consecutive missed):**
 ```promql
-eth_sync_committee_rewards_gwei{label="scope:watched"}
+eth_missed_consecutive_attestations{scope=~"operator:.*"} > 2
+```
+
+**ETH price:**
+```promql
+eth_current_price_dollars{network="mainnet"}
 ```
 
 ## Access Metrics
