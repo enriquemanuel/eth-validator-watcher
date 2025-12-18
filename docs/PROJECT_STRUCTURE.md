@@ -15,19 +15,29 @@ eth-validator-watcher/
 │   ├── duties/                  # Attestation/reward processing
 │   ├── metrics/                 # Metrics computation & Prometheus
 │   ├── models/                  # Data structures
+│   ├── price/                   # ETH price fetcher (CoinGecko API)
 │   ├── proposer/                # Proposer duty tracking
 │   ├── validator/               # Validator registries
 │   └── watcher/                 # Main orchestrator
+├── monitoring/                   # Monitoring configuration
+│   ├── grafana/                 # Grafana dashboards
+│   │   └── dashboards/          # JSON dashboard definitions
+│   └── prometheus/              # Prometheus configuration
+├── charts/                       # Helm charts for Kubernetes
+│   └── eth-validator-watcher/   # Main Helm chart
+├── docs/                         # Documentation
+│   ├── CREDITS.md               # Attribution and credits
+│   ├── GO_IMPLEMENTATION_SUMMARY.md  # Technical details
+│   ├── METRICS_GUIDE.md         # Metrics documentation
+│   ├── PROJECT_STRUCTURE.md     # This file
+│   └── QUICKSTART.md            # Quick start guide
 ├── go.mod                        # Go module definition
 ├── go.sum                        # Go dependency lock
 ├── Makefile                      # Build automation
 ├── Dockerfile                    # Container image
 ├── docker-compose.yaml           # Complete monitoring stack
 ├── config.example.yaml           # Example configuration
-├── README.md                     # Main documentation
-├── QUICKSTART.md                 # Quick start guide
-├── MIGRATION_GUIDE.md            # Python to Go migration
-└── GO_IMPLEMENTATION_SUMMARY.md  # Technical details
+└── README.md                     # Main documentation
 ```
 
 ## Python Legacy
@@ -51,10 +61,9 @@ python-legacy/
 
 ## Shared Resources
 
-Some resources remain in the root as they're used by both versions:
-
-- `grafana/` - Grafana dashboards (compatible with both versions)
-- `charts/` - Helm charts
+- `monitoring/grafana/` - Grafana dashboards
+- `monitoring/prometheus/` - Prometheus configuration
+- `charts/` - Helm charts for Kubernetes deployment
 - `LICENSE` - Project license
 
 ## Quick Start

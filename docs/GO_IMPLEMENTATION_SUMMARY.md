@@ -219,6 +219,31 @@ All Prometheus metrics with identical naming to Python version:
 - `eth_validator_watcher_status_count{label,status}`
 - `eth_validator_watcher_status_stake{label,status}`
 
+**Sync Committee Metrics:**
+- `eth_sync_committee_validators{label}` - Validators in sync committee
+- `eth_sync_committee_duties_total{label}` - Total sync committee slots assigned
+- `eth_sync_committee_success_total{label}` - Successful participations
+- `eth_sync_committee_missed_total{label}` - Missed participations
+- `eth_sync_committee_rewards_gwei{label}` - Sync committee rewards
+- `eth_sync_committee_success_rate{label}` - Success rate (0-100%)
+
+**Queue Metrics:**
+- `eth_pending_deposits{network}` - Pending deposit count
+- `eth_pending_deposits_gwei{network}` - Pending deposit value
+- `eth_pending_consolidations{network}` - Pending consolidation count
+- `eth_pending_withdrawals{network}` - Pending withdrawal count
+
+**Network Metrics:**
+- `eth_eth_price_usd{network}` - Current ETH price in USD
+- `eth_validator_type_count{network,type}` - Validators by withdrawal credential type (0x00, 0x01, 0x02)
+
+**Label Scopes:**
+- `scope:all-network` - All 2M+ Ethereum validators
+- `scope:network` - Network validators excluding watched (for comparison)
+- `scope:watched` - Your watched validators only
+- `key:0x...` - Auto-generated per-validator label (first 12 chars of pubkey)
+- Custom labels from config (operator:, region:, client:, etc.)
+
 ### 6. Documentation
 
 #### User Documentation
@@ -283,6 +308,13 @@ All Prometheus metrics with identical naming to Python version:
 3. Advanced replay mode features
 4. gRPC API for external integrations
 5. Database backend for historical data
+
+#### Recently Implemented
+- ✅ Sync committee tracking (duties, participation, rewards)
+- ✅ Queue metrics (pending deposits, consolidations, withdrawals)
+- ✅ ETH price tracking
+- ✅ Auto-generated key:X labels per validator
+- ✅ scope:network label (network excluding watched)
 
 ### 10. Migration Path
 

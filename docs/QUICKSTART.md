@@ -4,16 +4,31 @@ Get up and running with the Go-based Ethereum Validator Watcher in 5 minutes.
 
 ## Prerequisites
 
-- Go 1.21+ (or use pre-built binary)
+- Go 1.21+ (or use pre-built binary/Docker)
 - Access to an Ethereum Beacon node
 - 2-4 GB RAM
 - Multi-core CPU recommended
 
-## Option 1: Pre-built Binary (Fastest)
+## Option 1: Docker (Recommended)
 
 ```bash
-# Download latest release (replace with actual URL when published)
-wget https://github.com/kilnfi/eth-validator-watcher/releases/latest/download/eth-validator-watcher-linux-amd64
+# Pull image from GitHub Container Registry
+docker pull ghcr.io/enriquemanuel/eth-validator-watcher:latest
+
+# Create config file (see Configuration section below)
+# Then run:
+docker run -d \
+  --name eth-validator-watcher \
+  -p 8080:8080 \
+  -v $(pwd)/config.yaml:/config/config.yaml \
+  ghcr.io/enriquemanuel/eth-validator-watcher:latest
+```
+
+## Option 2: Pre-built Binary
+
+```bash
+# Download latest release
+wget https://github.com/enriquemanuel/eth-validator-watcher/releases/latest/download/eth-validator-watcher-linux-amd64
 
 # Make executable
 chmod +x eth-validator-watcher-linux-amd64
@@ -23,7 +38,7 @@ mv eth-validator-watcher-linux-amd64 eth-validator-watcher
 ./eth-validator-watcher -version
 ```
 
-## Option 2: Build from Source
+## Option 3: Build from Source
 
 ```bash
 # Build
@@ -35,17 +50,6 @@ make build-darwin  # macOS
 
 # Binary will be in build/
 ./build/eth-validator-watcher -version
-```
-
-## Option 3: Docker
-
-```bash
-# Build image
-docker build -f Dockerfile.go -t eth-validator-watcher .
-
-# Run
-docker run -p 8000:8000 -v $(pwd)/config.yaml:/config.yaml \
-  eth-validator-watcher -config /config.yaml
 ```
 
 ## Configuration
@@ -86,6 +90,18 @@ curl http://localhost:5052/eth/v1/beacon/states/head/validators | jq '.data[0].v
 
 ## Verify It's Working
 
+### Health Checks
+
+```bash
+# Liveness check (always returns OK if server is running)
+curl http://localhost:8080/health
+# Response: OK
+
+# Readiness check (returns OK only after initialization is complete)
+curl http://localhost:8080/ready
+# Response: READY (or NOT READY if still initializing)
+```
+
 ### Check Logs
 
 ```bash
@@ -93,7 +109,8 @@ curl http://localhost:5052/eth/v1/beacon/states/head/validators | jq '.data[0].v
 # INFO Starting Ethereum Validator Watcher
 # INFO Initialized beacon clock
 # INFO Loading all validators from beacon node...
-# INFO Loaded 2000000 validators
+# INFO ✅ Loaded all validators (batch mode)
+# INFO ✅ Validator watcher ready - health checks will now pass
 # INFO Processing epoch
 ```
 
@@ -101,14 +118,15 @@ curl http://localhost:5052/eth/v1/beacon/states/head/validators | jq '.data[0].v
 
 ```bash
 # Open in browser
-open http://localhost:8000/metrics
+open http://localhost:8080/metrics
 
 # Or via curl
-curl http://localhost:8000/metrics | grep eth_validator_watcher
+curl http://localhost:8080/metrics | grep eth_validator_watcher
 
 # You should see metrics like:
 # eth_validator_watcher_validator_count{label="scope:watched"} 1
 # eth_validator_watcher_missed_attestations{label="scope:watched"} 0
+# eth_sync_committee_validators{label="scope:watched"} 0
 ```
 
 ### Check with Prometheus
@@ -119,7 +137,7 @@ Add to `prometheus.yml`:
 scrape_configs:
   - job_name: 'eth-validator-watcher'
     static_configs:
-      - targets: ['localhost:8000']
+      - targets: ['localhost:8080']
 ```
 
 ## Complete Monitoring Stack
@@ -132,10 +150,10 @@ cp config.example.yaml config.yaml
 # Edit config.yaml with your validators
 
 # Start stack
-docker-compose -f docker-compose.go.yaml up -d
+docker-compose up -d
 
 # Access services
-# - Watcher metrics: http://localhost:8000/metrics
+# - Watcher metrics: http://localhost:8080/metrics
 # - Prometheus: http://localhost:9090
 # - Grafana: http://localhost:3000 (admin/admin)
 ```
@@ -153,7 +171,7 @@ docker-compose -f docker-compose.go.yaml up -d
 ### High memory usage
 - Normal for 2M validators (~500MB)
 - Reduce watched validators if needed
-- Check for memory leaks: `curl http://localhost:8000/debug/pprof/heap`
+- Set `load_all_validators: false` in config to skip network comparison
 
 ## Production Deployment
 
@@ -193,7 +211,7 @@ sudo systemctl status eth-validator-watcher
 journalctl -u eth-validator-watcher -f
 
 # Check metrics
-watch -n 5 'curl -s http://localhost:8000/metrics | grep missed_attestations'
+watch -n 5 'curl -s http://localhost:8080/metrics | grep missed_attestations'
 
 # Monitor resources
 top -p $(pgrep eth-validator-watcher)
@@ -231,14 +249,14 @@ After startup, you should see:
 
 ## Documentation
 
-- **README.go.md**: Full documentation
-- **MIGRATION_GUIDE.md**: Migrate from Python version
-- **GO_IMPLEMENTATION_SUMMARY.md**: Technical details
+- **README.md**: Full documentation
+- **docs/METRICS_GUIDE.md**: Understanding metrics
+- **docs/GO_IMPLEMENTATION_SUMMARY.md**: Technical details
 
 ## Support
 
-- GitHub Issues: https://github.com/kilnfi/eth-validator-watcher/issues
+- GitHub Issues: https://github.com/enriquemanuel/eth-validator-watcher/issues
 - Logs: `journalctl -u eth-validator-watcher -f`
-- Metrics: http://localhost:8000/metrics
+- Metrics: http://localhost:8080/metrics
 
 Happy monitoring! 🚀
