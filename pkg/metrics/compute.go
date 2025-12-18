@@ -83,16 +83,16 @@ type MetricsByLabel struct {
 	SlashedStake float64
 
 	// Consecutive missed attestations
-	MaxConsecutiveMissed       uint64  // Max consecutive missed
-	MaxConsecutiveMissedStake  float64 // Stake-weighted max consecutive missed
+	MaxConsecutiveMissed      uint64  // Max consecutive missed
+	MaxConsecutiveMissedStake float64 // Stake-weighted max consecutive missed
 
 	// Sync committee tracking
-	SyncCommitteeCount      int               // Validators in sync committee
-	SyncCommitteeDuties     uint64            // Total sync committee slots assigned
-	SyncCommitteeSuccess    uint64            // Sync committee slots participated
-	SyncCommitteeMissed     uint64            // Sync committee slots missed
-	SyncCommitteeRewards    models.SignedGwei // Total sync committee rewards
-	SyncCommitteeSuccessRate float64          // Success rate (0-100)
+	SyncCommitteeCount       int               // Validators in sync committee
+	SyncCommitteeDuties      uint64            // Total sync committee slots assigned
+	SyncCommitteeSuccess     uint64            // Sync committee slots participated
+	SyncCommitteeMissed      uint64            // Sync committee slots missed
+	SyncCommitteeRewards     models.SignedGwei // Total sync committee rewards
+	SyncCommitteeSuccessRate float64           // Success rate (0-100)
 
 	// Details for logging (limited to 5)
 	MissedAttestationDetails []ValidatorDetail
@@ -151,9 +151,9 @@ func ComputeMetrics(validators []*validator.WatchedValidator, slot models.Slot) 
 					metrics, ok := localMetrics[label]
 					if !ok {
 						metrics = &MetricsByLabel{
-							Label:              label,
-							StatusCounts:       make(map[models.ValidatorStatus]int),
-							StatusStakes:       make(map[models.ValidatorStatus]float64),
+							Label:               label,
+							StatusCounts:        make(map[models.ValidatorStatus]int),
+							StatusStakes:        make(map[models.ValidatorStatus]float64),
 							ValidatorTypeCounts: make(map[string]int),
 							ValidatorTypeStakes: make(map[string]float64),
 						}
@@ -281,9 +281,9 @@ func ComputeMetrics(validators []*validator.WatchedValidator, slot models.Slot) 
 		for label, metrics := range result.metrics {
 			if _, ok := finalMetrics[label]; !ok {
 				finalMetrics[label] = &MetricsByLabel{
-					Label:              label,
-					StatusCounts:       make(map[models.ValidatorStatus]int),
-					StatusStakes:       make(map[models.ValidatorStatus]float64),
+					Label:               label,
+					StatusCounts:        make(map[models.ValidatorStatus]int),
+					StatusStakes:        make(map[models.ValidatorStatus]float64),
 					ValidatorTypeCounts: make(map[string]int),
 					ValidatorTypeStakes: make(map[string]float64),
 				}
@@ -370,13 +370,13 @@ func ComputeMetrics(validators []*validator.WatchedValidator, slot models.Slot) 
 		}
 	}
 
-	// Calculate rates
+	// Calculate rates (as percentages 0-100, like Python)
 	for _, metrics := range finalMetrics {
 		if metrics.IdealConsensusRewards > 0 {
-			metrics.ConsensusRewardsRate = float64(metrics.ConsensusRewards) / float64(metrics.IdealConsensusRewards)
+			metrics.ConsensusRewardsRate = float64(metrics.ConsensusRewards) / float64(metrics.IdealConsensusRewards) * 100.0
 		}
 		if metrics.AttestationDuties > 0 {
-			metrics.AttestationDutiesRate = float64(metrics.AttestationDutiesSuccess) / float64(metrics.AttestationDuties)
+			metrics.AttestationDutiesRate = float64(metrics.AttestationDutiesSuccess) / float64(metrics.AttestationDuties) * 100.0
 		}
 		// Sync committee success rate (percentage 0-100)
 		if metrics.SyncCommitteeDuties > 0 {
@@ -390,9 +390,9 @@ func ComputeMetrics(validators []*validator.WatchedValidator, slot models.Slot) 
 // ComputeNetworkMetrics computes aggregate network-wide metrics from all validators
 func ComputeNetworkMetrics(allValidators []models.Validator) *MetricsByLabel {
 	metrics := &MetricsByLabel{
-		Label:              "scope:all-network",
-		StatusCounts:       make(map[models.ValidatorStatus]int),
-		StatusStakes:       make(map[models.ValidatorStatus]float64),
+		Label:               "scope:all-network",
+		StatusCounts:        make(map[models.ValidatorStatus]int),
+		StatusStakes:        make(map[models.ValidatorStatus]float64),
 		ValidatorTypeCounts: make(map[string]int),
 		ValidatorTypeStakes: make(map[string]float64),
 	}

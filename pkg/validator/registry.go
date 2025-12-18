@@ -43,11 +43,11 @@ type WatchedValidator struct {
 	HasRewardsData            bool // Whether validator has rewards data for current epoch
 
 	// Sync committee tracking
-	InSyncCommittee         bool               // Whether validator is in current sync committee
-	SyncCommitteeDuties     uint64             // Total sync committee slots assigned
-	SyncCommitteeSuccess    uint64             // Sync committee slots where validator participated
-	SyncCommitteeMissed     uint64             // Sync committee slots where validator missed
-	SyncCommitteeRewards    models.SignedGwei  // Total sync committee rewards (can be negative for penalties)
+	InSyncCommittee      bool              // Whether validator is in current sync committee
+	SyncCommitteeDuties  uint64            // Total sync committee slots assigned
+	SyncCommitteeSuccess uint64            // Sync committee slots where validator participated
+	SyncCommitteeMissed  uint64            // Sync committee slots where validator missed
+	SyncCommitteeRewards models.SignedGwei // Total sync committee rewards (can be negative for penalties)
 }
 
 // ValidatorType represents the withdrawal credential type

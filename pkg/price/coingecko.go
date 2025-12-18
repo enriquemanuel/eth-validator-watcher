@@ -28,8 +28,8 @@ type Fetcher struct {
 	logger          *logrus.Logger
 	refreshInterval time.Duration
 
-	mu       sync.RWMutex
-	price    float64
+	mu        sync.RWMutex
+	price     float64
 	lastFetch time.Time
 }
 

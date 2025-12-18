@@ -51,8 +51,8 @@ type PrometheusMetrics struct {
 	ConsensusRewardsRate       *prometheus.GaugeVec
 
 	// Duty metrics at slot level
-	MissedDutiesAtSlot       *prometheus.GaugeVec
-	MissedDutiesAtSlotScaled *prometheus.GaugeVec
+	MissedDutiesAtSlot          *prometheus.GaugeVec
+	MissedDutiesAtSlotScaled    *prometheus.GaugeVec
 	PerformedDutiesAtSlot       *prometheus.GaugeVec
 	PerformedDutiesAtSlotScaled *prometheus.GaugeVec
 
@@ -65,8 +65,8 @@ type PrometheusMetrics struct {
 	MissedConsecutiveAttestationsScaled *prometheus.GaugeVec
 
 	// Counter state tracking (last seen values for incrementing)
-	counterState     map[string]counterValues
-	counterStateMu   sync.RWMutex
+	counterState   map[string]counterValues
+	counterStateMu sync.RWMutex
 }
 
 // counterValues tracks the last seen values for counters

@@ -286,9 +286,9 @@ type WatchedKey struct {
 
 // SyncCommitteeDuty represents a sync committee duty for a validator
 type SyncCommitteeDuty struct {
-	Pubkey                        string           `json:"pubkey"`
-	ValidatorIndex                ValidatorIndex   `json:"validator_index,string"`
-	ValidatorSyncCommitteeIndices []string         `json:"validator_sync_committee_indices"`
+	Pubkey                        string         `json:"pubkey"`
+	ValidatorIndex                ValidatorIndex `json:"validator_index,string"`
+	ValidatorSyncCommitteeIndices []string       `json:"validator_sync_committee_indices"`
 }
 
 // SyncCommitteeDutiesResponse represents the API response for sync committee duties

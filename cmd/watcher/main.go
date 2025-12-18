@@ -34,7 +34,7 @@ const (
 func main() {
 	// Log process start immediately
 	fmt.Fprintf(os.Stderr, "PROCESS STARTED: PID=%d\n", os.Getpid())
-	
+
 	// Recover from any panics and log them before exiting
 	defer func() {
 		if r := recover(); r != nil {
@@ -102,13 +102,13 @@ func main() {
 	}()
 
 	logger.Info("Entering restart loop - watcher will auto-restart on exit")
-	
+
 	for {
 		logger.Info("Starting watcher iteration...")
 		runWatcherWithRecovery(w, ctx, logger)
-		
+
 		logger.Info("runWatcherWithRecovery returned - checking exit conditions...")
-		
+
 		// Check if we should exit (context cancelled)
 		select {
 		case <-ctx.Done():
@@ -119,7 +119,7 @@ func main() {
 			// Log it and restart the watcher
 			logger.Warn("Watcher main loop exited unexpectedly - restarting in 5 seconds...")
 			time.Sleep(5 * time.Second)
-			
+
 			// Recreate watcher in case it's in a bad state
 			logger.Info("Recreating watcher instance...")
 			newWatcher, err := watcher.NewValidatorWatcher(cfg, logger)
@@ -144,10 +144,10 @@ func runWatcherWithRecovery(w *watcher.ValidatorWatcher, ctx context.Context, lo
 	}()
 
 	logger.Info("Starting watcher Run()...")
-	
+
 	// Run watcher - keep running even on errors, only exit on context cancellation
 	err := w.Run(ctx)
-	
+
 	if err != nil {
 		if err == context.Canceled {
 			logger.Info("Watcher stopped due to context cancellation")
@@ -157,7 +157,7 @@ func runWatcherWithRecovery(w *watcher.ValidatorWatcher, ctx context.Context, lo
 		// Return so outer loop can restart
 		return
 	}
-	
+
 	// If Run() returned nil without context cancellation, log it
 	logger.WithFields(logrus.Fields{
 		"context_done": ctx.Err(),

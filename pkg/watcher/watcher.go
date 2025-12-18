@@ -366,7 +366,7 @@ func (w *ValidatorWatcher) mainLoop(ctx context.Context) error {
 		w.updateMetrics(currentSlot, currentEpoch)
 
 		// Wait for next slot
-		if _, err := w.clock.WaitUntilNextSlot(ctx); err != nil {
+		if _, err := w.clock.WaitUntilNextSlot(ctx, currentSlot); err != nil {
 			return err
 		}
 
@@ -1053,8 +1053,8 @@ func (w *ValidatorWatcher) updateNetworkMetrics() {
 	ctx := context.Background()
 	network := w.config.Network
 
-	// Fetch ETH price from Coinbase
-	ethPrice := w.priceFetcher.GetCurrentETHPrice()
+	// Fetch ETH price
+	ethPrice := w.priceFetcher.GetPrice()
 
 	// Fetch pending deposits
 	var pendingDepositsCount, pendingDepositsValue float64
@@ -1094,9 +1094,9 @@ func (w *ValidatorWatcher) updateNetworkMetrics() {
 	)
 
 	w.logger.WithFields(logrus.Fields{
-		"eth_price":             ethPrice,
-		"pending_deposits":      pendingDepositsCount,
+		"eth_price":              ethPrice,
+		"pending_deposits":       pendingDepositsCount,
 		"pending_consolidations": pendingConsolidationsCount,
-		"pending_withdrawals":   pendingWithdrawalsCount,
+		"pending_withdrawals":    pendingWithdrawalsCount,
 	}).Debug("Updated network metrics")
 }

@@ -87,7 +87,7 @@ func TestAllValidatorsAggregates(t *testing.T) {
 	validators[1].Data.EffectiveBalance = 32000000000
 	validators[1].Data.WithdrawalCredentials = "0x01def"
 	validators[2].Data.Pubkey = "0x789ghi"
-	validators[2].Data.EffectiveBalance = 64000000000 // 64 ETH
+	validators[2].Data.EffectiveBalance = 64000000000    // 64 ETH
 	validators[2].Data.WithdrawalCredentials = "0x02xyz" // 0x02 type
 
 	av.Update(validators)
