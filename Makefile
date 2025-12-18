@@ -103,7 +103,7 @@ docker-build:
 
 docker-run:
 	@echo "Running Docker container..."
-	docker run -p 8000:8000 -v $(PWD)/config.yaml:/config.yaml $(DOCKER_IMAGE):latest -config /config.yaml
+	docker run -p 8080:8080 -v $(PWD)/config.yaml:/config.yaml $(DOCKER_IMAGE):latest -config /config.yaml
 
 help:
 	@echo "Ethereum Validator Watcher - Makefile targets:"

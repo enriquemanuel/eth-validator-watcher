@@ -164,7 +164,7 @@ eth_sync_committee_rewards_gwei{label="scope:watched"}
 
 Metrics are available at:
 ```
-http://localhost:8000/metrics
+http://localhost:8080/metrics
 ```
 
 Or use Prometheus/Grafana for visualization and alerting.
