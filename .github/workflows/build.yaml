@@ -3,11 +3,13 @@ name: Build and Test
 on:
   push:
     branches:
-      - main
       - develop
+      - 'feature/**'
+      - 'fix/**'
   pull_request:
     branches:
       - main
+      - develop
 
 env:
   REGISTRY: ghcr.io
@@ -73,7 +75,7 @@ jobs:
   build-docker:
     needs: [lint, test]
     runs-on: ubuntu-latest
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' && github.ref != 'refs/heads/main'
     permissions:
       contents: read
       packages: write

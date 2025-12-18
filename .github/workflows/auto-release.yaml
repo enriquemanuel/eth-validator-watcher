@@ -1,0 +1,290 @@
+name: Auto Release on Push to Main
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  packages: write
+  pages: write
+  id-token: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # Analyze commits to determine version bump
+  analyze-commits:
+    runs-on: ubuntu-latest
+    outputs:
+      should_release: ${{ steps.check.outputs.should_release }}
+      new_version: ${{ steps.version.outputs.new_version }}
+      release_type: ${{ steps.version.outputs.release_type }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get latest tag
+        id: get_tag
+        run: |
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          echo "latest_tag=${LATEST_TAG}" >> $GITHUB_OUTPUT
+          echo "Latest tag: ${LATEST_TAG}"
+
+      - name: Check if should release
+        id: check
+        run: |
+          LATEST_TAG="${{ steps.get_tag.outputs.latest_tag }}"
+
+          # Get commits since last tag
+          if [ "$LATEST_TAG" = "v0.0.0" ]; then
+            COMMITS=$(git log --pretty=format:"%s" --no-merges)
+          else
+            COMMITS=$(git log ${LATEST_TAG}..HEAD --pretty=format:"%s" --no-merges)
+          fi
+
+          echo "Commits since last tag:"
+          echo "$COMMITS"
+
+          # Check if there are any feat, fix, or breaking change commits
+          if echo "$COMMITS" | grep -qE "^(feat|fix|BREAKING CHANGE|perf|refactor)(\(.+\))?!?:"; then
+            echo "should_release=true" >> $GITHUB_OUTPUT
+            echo "Found releasable commits"
+          else
+            echo "should_release=false" >> $GITHUB_OUTPUT
+            echo "No releasable commits found"
+          fi
+
+      - name: Calculate new version
+        id: version
+        if: steps.check.outputs.should_release == 'true'
+        run: |
+          LATEST_TAG="${{ steps.get_tag.outputs.latest_tag }}"
+
+          # Remove 'v' prefix for version calculation
+          CURRENT_VERSION=${LATEST_TAG#v}
+
+          # Parse current version
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
+
+          # Get commits since last tag
+          if [ "$LATEST_TAG" = "v0.0.0" ]; then
+            COMMITS=$(git log --pretty=format:"%s" --no-merges)
+          else
+            COMMITS=$(git log ${LATEST_TAG}..HEAD --pretty=format:"%s" --no-merges)
+          fi
+
+          # Determine version bump type
+          if echo "$COMMITS" | grep -qE "^(feat|fix|perf|refactor)(\(.+\))?!:|^BREAKING CHANGE:"; then
+            # Major version bump for breaking changes
+            MAJOR=$((MAJOR + 1))
+            MINOR=0
+            PATCH=0
+            RELEASE_TYPE="major"
+          elif echo "$COMMITS" | grep -qE "^feat(\(.+\))?:"; then
+            # Minor version bump for new features
+            MINOR=$((MINOR + 1))
+            PATCH=0
+            RELEASE_TYPE="minor"
+          elif echo "$COMMITS" | grep -qE "^fix(\(.+\))?:"; then
+            # Patch version bump for bug fixes
+            PATCH=$((PATCH + 1))
+            RELEASE_TYPE="patch"
+          else
+            # Default to patch
+            PATCH=$((PATCH + 1))
+            RELEASE_TYPE="patch"
+          fi
+
+          NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
+          echo "new_version=${NEW_VERSION}" >> $GITHUB_OUTPUT
+          echo "release_type=${RELEASE_TYPE}" >> $GITHUB_OUTPUT
+          echo "New version will be: v${NEW_VERSION} (${RELEASE_TYPE})"
+
+  # Build and push Docker image with new version
+  build-and-push:
+    needs: analyze-commits
+    if: needs.analyze-commits.outputs.should_release == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=${{ needs.analyze-commits.outputs.new_version }}
+            type=raw,value=latest
+            type=sha
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64,linux/arm64
+
+  # Update Helm chart with new version
+  update-helm-chart:
+    needs: [analyze-commits, build-and-push]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Update Helm chart version and appVersion
+        env:
+          VERSION: ${{ needs.analyze-commits.outputs.new_version }}
+        run: |
+          # Update Chart.yaml
+          sed -i "s/^version:.*/version: ${VERSION}/" charts/eth-validator-watcher/Chart.yaml
+          sed -i "s/^appVersion:.*/appVersion: \"${VERSION}\"/" charts/eth-validator-watcher/Chart.yaml
+
+          # Update values.yaml with new image tag
+          sed -i "s/tag:.*/tag: \"${VERSION}\"/" charts/eth-validator-watcher/values.yaml
+
+      - name: Commit Helm chart changes
+        env:
+          VERSION: ${{ needs.analyze-commits.outputs.new_version }}
+        run: |
+          git add charts/eth-validator-watcher/Chart.yaml
+          git add charts/eth-validator-watcher/values.yaml
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "chore: update Helm chart to version ${VERSION} [skip ci]"
+            git push origin main
+          fi
+
+  # Package and publish Helm chart
+  publish-helm-chart:
+    needs: [analyze-commits, update-helm-chart]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Install Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: 'latest'
+
+      - name: Package Helm chart
+        run: |
+          mkdir -p .helm-repo
+          helm package charts/eth-validator-watcher -d .helm-repo
+
+      - name: Create Helm repo index
+        run: |
+          cd .helm-repo
+          helm repo index . --url https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: .helm-repo
+          keep_files: true
+
+  # Create Git tag and GitHub release
+  create-release:
+    needs: [analyze-commits, build-and-push, update-helm-chart, publish-helm-chart]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Create and push tag
+        env:
+          VERSION: ${{ needs.analyze-commits.outputs.new_version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "v${VERSION}" -m "Release v${VERSION}"
+          git push origin "v${VERSION}"
+
+      - name: Generate release notes
+        id: notes
+        env:
+          VERSION: ${{ needs.analyze-commits.outputs.new_version }}
+          RELEASE_TYPE: ${{ needs.analyze-commits.outputs.release_type }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Get the previous tag
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+
+          # Generate release notes
+          if [ -z "$PREV_TAG" ]; then
+            NOTES="## Initial Release"
+          else
+            NOTES=$(git log ${PREV_TAG}..HEAD --pretty=format:"- %s (%h)" --no-merges)
+          fi
+
+          # Create release notes file
+          cat > release_notes.md << EOF
+          ## Release Type: ${RELEASE_TYPE}
+
+          ### Changes
+
+          ${NOTES}
+
+          ## Docker Image
+
+          \`\`\`bash
+          docker pull ghcr.io/${{ github.repository }}:${VERSION}
+          \`\`\`
+
+          ## Helm Chart
+
+          \`\`\`bash
+          helm repo add eth-validator-watcher https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
+          helm repo update
+          helm install eth-validator-watcher eth-validator-watcher/eth-validator-watcher --version ${VERSION}
+          \`\`\`
+          EOF
+
+          echo "Release notes created"
+
+      - name: Create GitHub Release
+        env:
+          VERSION: ${{ needs.analyze-commits.outputs.new_version }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "v${VERSION}" \
+            --title "Release v${VERSION}" \
+            --notes-file release_notes.md
